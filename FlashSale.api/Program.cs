@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using FlashSale.Api.Endpoints;
+using FlashSale.Api.OrderBook;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
+//populate inventory
+Inventory inventory = new Inventory();
+inventory.PopulateInventory();
+builder.Services.AddSingleton(inventory);
 //db connection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -39,35 +43,35 @@ app.MapSaleEndpoints();
 
 
 // //signup
-app.MapPost("/signup", async(UserCredentials credentials, AppDbContext db) => {
+// app.MapPost("/signup", async(UserCredentials credentials, AppDbContext db) => {
 
-     //validate entry
-    if(string.IsNullOrEmpty(credentials.Username) || string.IsNullOrEmpty(credentials.Password)){
+//      //validate entry
+//     if(string.IsNullOrEmpty(credentials.Username) || string.IsNullOrEmpty(credentials.Password)){
     
-        return Results.BadRequest("Username and password cannot be empty.");
-    } 
+//         return Results.BadRequest("Username and password cannot be empty.");
+//     } 
 
-    // validatge kinaxis email
-    if(!credentials.Username.EndsWith("@kinaxis.com") || credentials.Password.Length < 6){
-        return Results.BadRequest("Username must end with '@kinaxis.com' and password must be at least 6 characters long.");
-    }
-    // if user already exists
-    var userExists = await db.Users.AnyAsync(u => u.Email == credentials.Username);
-    if(userExists){
-        var userfound = $"User '{credentials.Username}' already exists.";
-        return Results.BadRequest(userfound);
-    }
+//     // validatge kinaxis email
+//     if(!credentials.Username.EndsWith("@kinaxis.com") || credentials.Password.Length < 6){
+//         return Results.BadRequest("Username must end with '@kinaxis.com' and password must be at least 6 characters long.");
+//     }
+//     // if user already exists
+//     var userExists = await db.Users.AnyAsync(u => u.Email == credentials.Username);
+//     if(userExists){
+//         var userfound = $"User '{credentials.Username}' already exists.";
+//         return Results.BadRequest(userfound);
+//     }
 
     
 
-     User newUser = new User{
-        Email = credentials.Username,
-        PasswordHash = credentials.Password
-    };
-    db.Users.Add(newUser);
-    await db.SaveChangesAsync();
-    var response = $"User '{credentials.Username}' signed up successfully.";
-    return Results.Ok(response);
+//      User newUser = new User{
+//         Email = credentials.Username,
+//         PasswordHash = credentials.Password
+//     };
+//     db.Users.Add(newUser);
+//     await db.SaveChangesAsync();
+//     var response = $"User '{credentials.Username}' signed up successfully.";
+//     return Results.Ok(response);
    
 // });
 
