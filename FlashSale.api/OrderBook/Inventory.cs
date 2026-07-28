@@ -43,3 +43,41 @@ public class Inventory
 
 
 }
+
+public class Sale
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal TotalPrice { get; set; }
+    public string userId { get; set; } // Assuming userId is a string, adjust the type as needed
+
+    public Sale(int id, int productId, int quantity, decimal totalPrice, string userId)
+    {
+        Id = id;
+        ProductId = productId;
+        Quantity = quantity;
+        TotalPrice = totalPrice;
+        userId = userId;
+    }
+}
+
+public class OrderQue
+{
+    private Queue<Sale> queue = new Queue<Sale>();
+
+    public void Enqueue(Sale sale)
+    {
+        queue.Enqueue(sale);
+    }
+
+    public Sale Dequeue()
+    {
+        return queue.Dequeue();
+    }
+
+    public bool IsEmpty()
+    {
+        return queue.Count == 0;
+    }
+}

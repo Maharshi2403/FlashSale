@@ -38,9 +38,9 @@ public static class SaleEndpoints
             return Results.Ok(productList);
         });
 
+      
 
-
-        route.MapPost("/", (Sale sale) =>
+        route.MapPost("/order", (Sale sale) =>
         {
             // Save sale
             return Results.Created($"/sales/{sale.Id}", sale);
