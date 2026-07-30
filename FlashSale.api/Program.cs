@@ -12,6 +12,9 @@ builder.Services.AddSwaggerGen();
 //populate inventory
 Inventory inventory = new Inventory();
 inventory.PopulateInventory();
+
+
+builder.Services.AddSingleton<OrderChannel>();
 builder.Services.AddSingleton(inventory);
 //db connection
 builder.Services.AddDbContext<AppDbContext>(options =>

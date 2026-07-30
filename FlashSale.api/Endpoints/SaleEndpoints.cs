@@ -40,9 +40,13 @@ public static class SaleEndpoints
 
       
 
-        route.MapPost("/order", (Sale sale) =>
+        route.MapPost("/order", async (Sale sale) =>
         {
             // Save sale
+            var channel = app.ServiceProvider.GetRequiredService<OrderChannel>();
+            
+            await channel.Writer.WriteAsync(sale);
+            
             return Results.Created($"/sales/{sale.Id}", sale);
         });
 
