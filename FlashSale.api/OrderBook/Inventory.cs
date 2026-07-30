@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-namespace FlashSale.Api.OrderBook;
+namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
 {  
@@ -46,15 +46,15 @@ public class Inventory
 
 public class Sale
 {
-    public int Id { get; set; }
+
     public int ProductId { get; set; }
     public int Quantity { get; set; }
     public decimal TotalPrice { get; set; }
     public string userId { get; set; } // Assuming userId is a string, adjust the type as needed
 
-    public Sale(int id, int productId, int quantity, decimal totalPrice, string userId)
+    public Sale( int productId, int quantity, decimal totalPrice, string userId)
     {
-        Id = id;
+       
         ProductId = productId;
         Quantity = quantity;
         TotalPrice = totalPrice;
@@ -62,13 +62,15 @@ public class Sale
     }
 }
 
-public class OrderQue
+public class OrderQueue
 {
     private Queue<Sale> queue = new Queue<Sale>();
+    public List<Sale> Orders { get; } = new List<Sale>();
 
     public void Enqueue(Sale sale)
     {
         queue.Enqueue(sale);
+        Orders.Add(sale);
     }
 
     public Sale Dequeue()

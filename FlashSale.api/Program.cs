@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using FlashSale.Api.Endpoints;
 using FlashSale.Api.OrderBook;
+using FlashSale.Api.OrderBook.Inventory;
+using FlashSale.Api.OrderBook.OrderChannel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,13 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<OrderQueue>();
 //populate inventory
 Inventory inventory = new Inventory();
 inventory.PopulateInventory();
-
-
+builder.Services.AddSingleton<Inventory>(inventory);
 builder.Services.AddSingleton<OrderChannel>();
-builder.Services.AddSingleton(inventory);
+
 //db connection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -25,13 +27,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var app = builder.Build();
 
 // For API visulization and testing
-// if(app.Environment.IsDevelopment())
-// {
-//     app.UseSwagger();
-//     app.UseSwaggerUI();
-// };
+if(app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+};
 
-// app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.MapAuthEndpoints();
 app.MapSaleEndpoints();

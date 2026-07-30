@@ -1,6 +1,6 @@
 using System.Threading.Channels;
-using FlashSale.Api.Endpoints;
-
+using FlashSale.Api.OrderBook.Inventory;
+namespace FlashSale.Api.OrderBook.OrderChannel;
 public class OrderChannel
 {
     private readonly Channel<Sale> channel;
