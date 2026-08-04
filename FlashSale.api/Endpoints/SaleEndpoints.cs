@@ -18,9 +18,9 @@ public static class SaleEndpoints
         // will display inve
         route.MapGet("/items", () =>
         {   
-          
+            var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
             List<string> productList = new List<string>();
-            foreach (var product in Inventory.Products)
+            foreach (var product in inventory.dic.Values)
             {
                 var s = $"Product ID: {product.Id}, Name: {product.Name}, Quantity: {product.Quantity}, Price: {product.Price}";
                 productList.Add(s);
@@ -47,7 +47,7 @@ public static class SaleEndpoints
             var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
             inventory.PopulateInventory();
             List<string> productList = new List<string>();
-            foreach (var product in Inventory.Products)
+            foreach (var product in inventory.dic.Values)
             {
                 var s = $"Product ID: {product.Id}, Name: {product.Name}, Quantity: {product.Quantity}, Price: {product.Price}";
                 productList.Add(s);
@@ -62,11 +62,18 @@ public static class SaleEndpoints
             // Save sale
             var channel = app.ServiceProvider.GetRequiredService<OrderChannel>();
             var queue = app.ServiceProvider.GetRequiredService<OrderQueue>();
-            
             await channel.Writer.WriteAsync(sale);
 
-            queue.Enqueue(sale);
-            
+            try
+            {
+                queue.Enqueue(sale);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error enqueuing order: {ex.Message}");
+                return Results.Problem("Error processing order.");
+            }
+
             return Results.Created($"/sales/{sale.ProductId}", sale);
         });
 

@@ -4,25 +4,23 @@ namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
 {  
-
-   private volatile string inventoryfile;
-   public volatile Dictionary<int, Product>  dic;
+   public Dictionary<int, Product>  dic;
    public Inventory()
     {
-         
+        dic = new Dictionary<int, Product>();
     }
 
    // populate inventory with products
    public void PopulateInventory(){
-      string inventorylist = "OrderBook/itemlist.csv";
+      string inventoryfile = "OrderBook/itemlist.csv";
 
-      if(!File.Exists(inventorylist)){
-         Console.WriteLine($"Inventory file '{inventorylist}' not found.");
+      if(!File.Exists(inventoryfile)){
+         Console.WriteLine($"Inventory file '{inventoryfile}' not found.");
          return;
       }
       dic.Clear();
       
-      var lines = File.ReadAllLines(inventorylist);
+      var lines = File.ReadAllLines(inventoryfile);
       int i = 0;
       foreach(var line in lines){
             var parts = line.Split(',');
@@ -63,7 +61,7 @@ public class Sale
         ProductId = productId;
         Quantity = quantity;
         TotalPrice = totalPrice;
-        userId = userId;
+        this.userId = userId;
     }
 }
 

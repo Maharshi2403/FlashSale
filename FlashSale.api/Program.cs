@@ -8,15 +8,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 //services
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddSingleton<OrderChannel>();
+builder.Services.AddSingleton<OrderProcessing>(sp =>
+    new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>()));
 builder.Services.AddSingleton<OrderQueue>();
 //populate inventory
 Inventory inventory = new Inventory();
 inventory.PopulateInventory();
 builder.Services.AddSingleton<Inventory>(inventory);
-builder.Services.AddSingleton<OrderChannel>();
 
 //db connection
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -25,6 +27,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 
 var app = builder.Build();
+
+var orderProcessing = app.Services.GetRequiredService<OrderProcessing>();
+_ = Task.Run(() => orderProcessing.liveReader());
 
 // For API visulization and testing
 if(app.Environment.IsDevelopment())

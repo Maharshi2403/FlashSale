@@ -21,7 +21,26 @@ public class OrderProcessing
             {
                 var qty = order.Quantity;
 
-                if()
+                if (qty > 0)
+                {
+                    inve.dic.TryGetValue(order.ProductId, out var product);
+                    if (product != null)
+                    {
+                        if (product.Quantity >= qty)
+                        {
+                            product.Quantity -= qty;
+                            Console.WriteLine($"Order processed: Product ID {order.ProductId}, Quantity {qty}, Total Price {order.TotalPrice}, User ID {order.userId}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Insufficient quantity for Product ID {order.ProductId}. Available: {product.Quantity}, Requested: {qty}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Product ID {order.ProductId} not found in inventory.");
+                    }
+                }
             }
         }
     }

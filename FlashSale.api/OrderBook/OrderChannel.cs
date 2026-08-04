@@ -3,7 +3,7 @@ using FlashSale.Api.OrderBook.Inventory;
 namespace FlashSale.Api.OrderBook.OrderChannel;
 public class OrderChannel
 {
-    private readonly Channel<Sale> channel;
+    public Channel<Sale> channel;
     
     public ChannelWriter<Sale> Writer => channel.Writer;
 
