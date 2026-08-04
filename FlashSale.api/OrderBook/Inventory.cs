@@ -4,10 +4,13 @@ namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
 {  
-   public static List<Product> Products { get; set; } = new List<Product>();
+
+   private volatile string inventoryfile;
+   public volatile Dictionary<int, Product>  dic;
    public Inventory()
-   {
-   }
+    {
+         
+    }
 
    // populate inventory with products
    public void PopulateInventory(){
@@ -17,9 +20,10 @@ public class Inventory
          Console.WriteLine($"Inventory file '{inventorylist}' not found.");
          return;
       }
-      Products.Clear();
+      dic.Clear();
       
       var lines = File.ReadAllLines(inventorylist);
+      int i = 0;
       foreach(var line in lines){
             var parts = line.Split(',');
             if(parts.Length != 4){
@@ -35,7 +39,8 @@ public class Inventory
                 Price = decimal.Parse(parts[3])
             };
     
-            Products.Add(product);
+            dic[i] = product;
+            i++;
         }
      
 
