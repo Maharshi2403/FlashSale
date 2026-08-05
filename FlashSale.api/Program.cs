@@ -6,14 +6,17 @@ using FlashSale.Api.OrderBook.OrderChannel;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+builder.WebHost.UseUrls(
+    "http://0.0.0.0:5255",
+    "https://0.0.0.0:7255"
+);
 //services
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<OrderChannel>();
 builder.Services.AddSingleton<OrderProcessing>(sp =>
-    new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>()));
+    new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>(), sp.GetRequiredService<OrderQueue>()));
 builder.Services.AddSingleton<OrderQueue>();
 //populate inventory
 Inventory inventory = new Inventory();

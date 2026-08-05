@@ -7,10 +7,12 @@ public class OrderProcessing
 {
     Channel<Sale> _channel;
     Inventory inve;
-    public OrderProcessing(Channel<Sale> ch, Inventory inn)
+    OrderQueue orderQueue;
+    public OrderProcessing(Channel<Sale> ch, Inventory inn, OrderQueue orderQueue)
     {
         _channel = ch;
         inve = inn;
+        this.orderQueue = orderQueue;
     }
 
     public async Task liveReader()
@@ -23,12 +25,13 @@ public class OrderProcessing
 
                 if (qty > 0)
                 {
-                    inve.dic.TryGetValue(order.ProductId, out var product);
+                    inve.dic.TryGetValue(order.ProductId-1, out var product);
                     if (product != null)
                     {
                         if (product.Quantity >= qty)
                         {
                             product.Quantity -= qty;
+                            orderQueue.Orders.Add(order);
                             Console.WriteLine($"Order processed: Product ID {order.ProductId}, Quantity {qty}, Total Price {order.TotalPrice}, User ID {order.userId}");
                         }
                         else

@@ -62,11 +62,11 @@ public static class SaleEndpoints
             // Save sale
             var channel = app.ServiceProvider.GetRequiredService<OrderChannel>();
             var queue = app.ServiceProvider.GetRequiredService<OrderQueue>();
-            await channel.Writer.WriteAsync(sale);
+            
 
             try
-            {
-                queue.Enqueue(sale);
+            {    
+                await channel.Writer.WriteAsync(sale);
             }
             catch (Exception ex)
             {
