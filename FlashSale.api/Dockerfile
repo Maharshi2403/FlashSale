@@ -15,8 +15,11 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
+# Include inventory CSV in the runtime image so the app can find /app/OrderBook/itemlist.csv
+COPY --from=build /src/OrderBook/itemlist.csv /app/OrderBook/itemlist.csv
+
 EXPOSE 8080
 
 ENV ASPNETCORE_URLS=http://+:8080
 
-ENTRYPOINT ["dotnet", "FlashSale.Api.dll"]
+ENTRYPOINT ["dotnet", "FlashSale.api.dll"]

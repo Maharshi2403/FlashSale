@@ -6,10 +6,8 @@ using FlashSale.Api.OrderBook.OrderChannel;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls(
-    "http://0.0.0.0:5255",
-    "https://0.0.0.0:7255"
-);
+// Let the hosting environment (ASPNETCORE_URLS / Render's $PORT) control the listening URL.
+// Removed a hard-coded URL so the container/runtime can bind to the port Render provides.
 //services
 
 builder.Services.AddEndpointsApiExplorer();
@@ -19,13 +17,19 @@ builder.Services.AddSingleton<OrderProcessing>(sp =>
     new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>(), sp.GetRequiredService<OrderQueue>()));
 builder.Services.AddSingleton<OrderQueue>();
 //populate inventory
-Inventory inventory = new Inventory();
+Inventory inventory = new Inventory(builder.Environment.ContentRootPath);
 inventory.PopulateInventory();
 builder.Services.AddSingleton<Inventory>(inventory);
 
 //db connection
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Only add DbContext if a DefaultConnection is provided. This allows running without Postgres.
+var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+bool useDatabase = !string.IsNullOrEmpty(defaultConn);
+if (useDatabase)
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(defaultConn));
+}
 
 
 
@@ -35,15 +39,21 @@ var orderProcessing = app.Services.GetRequiredService<OrderProcessing>();
 _ = Task.Run(() => orderProcessing.liveReader());
 
 // For API visulization and testing
-if(app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI();
-};
 
-app.UseHttpsRedirection();
+// Map endpoints. Auth endpoints require a configured database; skip them if no DB is provided.
+if (useDatabase)
+{
+    app.MapAuthEndpoints();
+}
+else
+{
+    // Optionally expose a minimal /auth route indicating auth is disabled in this build.
+    app.MapGet("/auth", () => Results.Ok("Auth endpoints are disabled (no DB configured)."));
+}
 
-app.MapAuthEndpoints();
 app.MapSaleEndpoints();
 // [/status] designed to return current session's stats
 // app.MapGet("/status", () =>

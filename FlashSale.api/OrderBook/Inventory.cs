@@ -1,26 +1,43 @@
 using System;
 using System.IO;
+using System.Linq;
 namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
 {  
    public Dictionary<int, Product>  dic;
-   public Inventory()
+   private readonly string inventoryFilePath;
+
+   public Inventory(string contentRootPath)
     {
         dic = new Dictionary<int, Product>();
+        inventoryFilePath = Path.Combine(contentRootPath, "OrderBook", "itemlist.csv");
     }
 
    // populate inventory with products
    public void PopulateInventory(){
-      string inventoryfile = "OrderBook/itemlist.csv";
+        var candidates = new string[] {
+             inventoryFilePath,
+             Path.Combine(AppContext.BaseDirectory ?? string.Empty, "OrderBook", "itemlist.csv"),
+             Path.Combine(Directory.GetCurrentDirectory(), "OrderBook", "itemlist.csv"),
+             "OrderBook/itemlist.csv",
+        };
 
-      if(!File.Exists(inventoryfile)){
-         Console.WriteLine($"Inventory file '{inventoryfile}' not found.");
-         return;
-      }
-      dic.Clear();
-      
-      var lines = File.ReadAllLines(inventoryfile);
+        var foundPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
+        if (foundPath == null)
+        {
+            Console.WriteLine($"Inventory file not found. Checked paths:");
+            foreach(var p in candidates)
+            {
+                 Console.WriteLine($" - {p}");
+            }
+            return;
+        }
+
+        Console.WriteLine($"Using inventory file: {foundPath}");
+        dic.Clear();
+
+        var lines = File.ReadAllLines(foundPath);
       int i = 0;
       foreach(var line in lines){
             var parts = line.Split(',');
