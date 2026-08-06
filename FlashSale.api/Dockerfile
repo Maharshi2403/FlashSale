@@ -3,9 +3,9 @@ WORKDIR /src
 
 COPY . .
 
-RUN dotnet restore FlashSale.Api/FlashSale.Api.csproj
+RUN dotnet restore FlashSale.api.csproj
 
-RUN dotnet publish FlashSale.Api/FlashSale.Api.csproj \
+RUN dotnet publish FlashSale.api.csproj \
     -c Release \
     -o /app/publish \
     --no-restore
