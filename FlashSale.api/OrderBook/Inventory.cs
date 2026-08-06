@@ -71,6 +71,8 @@ public class Sale
     public int Quantity { get; set; }
     public decimal TotalPrice { get; set; }
     public string userId { get; set; } // Assuming userId is a string, adjust the type as needed
+    public long? ProcessingTimeNanoseconds { get; set; }
+    public double? ProcessingTimeMicroseconds { get; set; }
 
     public Sale( int productId, int quantity, decimal totalPrice, string userId)
     {

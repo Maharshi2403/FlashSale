@@ -34,7 +34,7 @@ public static class SaleEndpoints
             List<string> orderList = new List<string>();
             foreach (var order in orderQueue.Orders)
             {
-                var s = $"Product ID: {order.ProductId}, Quantity: {order.Quantity}, Total Price: {order.TotalPrice}, User ID: {order.userId}";
+                var s = $"Product ID: {order.ProductId}, Quantity: {order.Quantity}, Total Price: {order.TotalPrice}, User ID: {order.userId}, Processing Time: {order.ProcessingTimeNanoseconds} ns / {order.ProcessingTimeMicroseconds:F3} us";
                 orderList.Add(s);
             }
             return Results.Ok(orderList);
