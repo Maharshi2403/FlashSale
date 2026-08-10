@@ -5,6 +5,7 @@ namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
 {  
+    
    public Dictionary<int, Product>  dic;
    private readonly string inventoryFilePath;
 

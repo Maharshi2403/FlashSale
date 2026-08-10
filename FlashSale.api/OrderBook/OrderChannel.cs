@@ -11,7 +11,6 @@ public class OrderChannel
     public OrderChannel()
     {
         // Initialize the order channel
-
         channel = Channel.CreateUnbounded<Sale>(
             new UnboundedChannelOptions
             {

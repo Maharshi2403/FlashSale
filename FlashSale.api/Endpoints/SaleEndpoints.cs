@@ -10,7 +10,19 @@ namespace FlashSale.Api.Endpoints;
 public static class SaleEndpoints
 {    
 
-    // 
+    // Routes
+
+    // Mentainers
+    // ---- resetInventory ==> can alter inventory count
+
+    // Admin
+    // ---- items ==> Current available item counts in inventory
+    // ---- orderview ==> print out orders that are accepted and added into queue
+ 
+    // user
+    // ---- order ==> user can post ordr request from here
+
+
     public static IEndpointRouteBuilder MapSaleEndpoints(this IEndpointRouteBuilder app)
     {
         var route = app.MapGroup("/sales");
@@ -42,6 +54,8 @@ public static class SaleEndpoints
          
         // Manually update inventory from CSV file, this endpoint can be used to refresh the inventory without restarting the application.
         // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
+
+        // good solution - this route should pause POST/order request untile invenotry gets updated 
          route.MapGet("/resetInventory", () =>
         {   
             var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
@@ -59,13 +73,14 @@ public static class SaleEndpoints
 
         route.MapPost("/order", async (Sale sale) =>
         {
-            // Save sale
+            // recalling OBJ channel and queue initiated at build time
             var channel = app.ServiceProvider.GetRequiredService<OrderChannel>();
             var queue = app.ServiceProvider.GetRequiredService<OrderQueue>();
             
 
             try
             {    
+                // write order in channel
                 await channel.Writer.WriteAsync(sale);
             }
             catch (Exception ex)
