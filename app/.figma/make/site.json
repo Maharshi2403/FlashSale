@@ -1,0 +1,10 @@
+{
+  "description": "Browse and purchase IT equipment with customizable color options, view detailed product info, and track your orders securely in one minimalistic app.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
