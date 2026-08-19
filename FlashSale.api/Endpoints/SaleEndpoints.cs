@@ -29,14 +29,22 @@ public static class SaleEndpoints
         
         // will display inve
         route.MapGet("/items", () =>
-        {   
+        {
             var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
-            List<string> productList = new List<string>();
+            var productList = new List<object>();
             foreach (var product in inventory.dic.Values)
             {
-                var s = $"Product ID: {product.Id}, Name: {product.Name}, Quantity: {product.Quantity}, Price: {product.Price}";
-                productList.Add(s);
+                productList.Add(new {
+                    id = product.Id.ToString(),
+                    name = product.Name,
+                    category = product.Category ?? "Equipment",
+                    description = product.Description ?? string.Empty,
+                    price = product.Price,
+                    stock = product.Quantity,
+                    specs = product.Specs ?? new Dictionary<string,string>()
+                });
             }
+
             return Results.Ok(productList);
         });
 

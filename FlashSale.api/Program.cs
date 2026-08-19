@@ -16,6 +16,15 @@ builder.Services.AddSingleton<OrderChannel>();
 builder.Services.AddSingleton<OrderProcessing>(sp =>
     new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>(), sp.GetRequiredService<OrderQueue>()));
 builder.Services.AddSingleton<OrderQueue>();
+// CORS: allow local front-end dev origins to call the API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocal", policy => policy
+        .WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8443")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
 //populate inventory
 Inventory inventory = new Inventory(builder.Environment.ContentRootPath);
 inventory.PopulateInventory();
@@ -42,6 +51,9 @@ _ = Task.Run(() => orderProcessing.liveReader());
 
     app.UseSwagger();
     app.UseSwaggerUI();
+
+// Enable CORS for local development UIs
+app.UseCors("AllowLocal");
 
 // Map endpoints. Auth endpoints require a configured database; skip them if no DB is provided.
 if (useDatabase)

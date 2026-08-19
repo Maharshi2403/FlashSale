@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 namespace FlashSale.Api.OrderBook.Inventory;
 
 public class Inventory
@@ -41,23 +42,113 @@ public class Inventory
         var lines = File.ReadAllLines(foundPath);
       int i = 0;
       foreach(var line in lines){
-            var parts = line.Split(',');
-            if(parts.Length != 4){
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var parts = SplitCsvLine(line);
+
+            // skip CSV header if present
+            if (parts.Length > 0 && parts[0].Trim().Equals("id", StringComparison.OrdinalIgnoreCase)) continue;
+
+            Product product = null;
+
+            if (parts.Length >= 7)
+            {
+                // new format: id,name,category,description,price,stock,specs
+                try
+                {
+                    var specs = new Dictionary<string, string>();
+                    var specsRaw = parts[6].Trim();
+                    if (!string.IsNullOrEmpty(specsRaw) && specsRaw != "{}")
+                    {
+                        if (specsRaw.StartsWith("{"))
+                        {
+                            try { specs = JsonSerializer.Deserialize<Dictionary<string,string>>(specsRaw) ?? new Dictionary<string,string>(); } catch { specs = new Dictionary<string,string>(); }
+                        }
+                        else
+                        {
+                            // fallback simple format: key=value;key2=value2
+                            try
+                            {
+                                foreach (var kv in specsRaw.Split(new[] {';','|'}, StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    var kvp = kv.Split('=', 2);
+                                    if (kvp.Length == 2) specs[kvp[0].Trim()] = kvp[1].Trim();
+                                }
+                            }
+                            catch { specs = new Dictionary<string,string>(); }
+                        }
+                    }
+
+                    product = new Product
+                    {
+                        Id = int.Parse(parts[0]),
+                        Name = parts[1],
+                        Category = parts[2],
+                        Description = parts[3],
+                        Price = decimal.Parse(parts[4]),
+                        Quantity = int.Parse(parts[5]),
+                        Specs = specs
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Invalid line in inventory file (new format): {line} -> {ex.Message}");
+                    continue;
+                }
+            }
+            else if (parts.Length == 4)
+            {
+                try
+                {
+                    product = new Product
+                    {
+                        Id = int.Parse(parts[0]),
+                        Name = parts[1],
+                        Quantity = int.Parse(parts[2]),
+                        Price = decimal.Parse(parts[3])
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Invalid line in inventory file (legacy format): {line} -> {ex.Message}");
+                    continue;
+                }
+            }
+            else
+            {
                 Console.WriteLine($"Invalid line in inventory file: {line}");
                 continue;
             }
-            
-            var product = new Product
-            {
-                Id = int.Parse(parts[0]),
-                Name = parts[1],
-                Quantity = int.Parse(parts[2]),
-                Price = decimal.Parse(parts[3])
-            };
-    
+
             dic[i] = product;
             i++;
         }
+
+    }
+
+    // Naive CSV splitter that respects quoted commas
+    private static string[] SplitCsvLine(string line)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        bool inQuotes = false;
+        var current = new System.Text.StringBuilder();
+        for (int idx = 0; idx < line.Length; idx++)
+        {
+            var ch = line[idx];
+            if (ch == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+            if (ch == ',' && !inQuotes)
+            {
+                parts.Add(current.ToString());
+                current.Clear();
+                continue;
+            }
+            current.Append(ch);
+        }
+        parts.Add(current.ToString());
+        return parts.ToArray();
      
 
    }

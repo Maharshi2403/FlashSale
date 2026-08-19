@@ -35,6 +35,7 @@ interface Order {
   createdAt: string
 }
 
+
 interface AuthState {
   token: string
   username: string
@@ -47,7 +48,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Laptop',
     description: 'Business ultrabook with Intel vPro, enterprise security suite included.',
     price: 1349.00,
-    stock: 12,
+    stock: 0,
     specs: { CPU: 'Intel Core i7-1365U', RAM: '16 GB DDR5', Storage: '512 GB NVMe', Display: '14" FHD IPS' },
   },
   {
@@ -56,7 +57,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Desktop',
     description: 'Compact desktop tower optimized for enterprise workloads and remote management.',
     price: 879.00,
-    stock: 7,
+    stock: 0,
     specs: { CPU: 'Intel Core i5-12500', RAM: '32 GB DDR4', Storage: '1 TB SSD', GPU: 'Intel UHD 770' },
   },
   {
@@ -65,7 +66,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Networking',
     description: '24-port PoE+ managed switch with VLAN, QoS, and Cisco DNA subscription.',
     price: 2150.00,
-    stock: 4,
+    stock: 0,
     specs: { Ports: '24x GbE PoE+', Uplinks: '4x SFP+', PoE: '370 W budget', Management: 'Cisco DNA' },
   },
   {
@@ -74,7 +75,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Display',
     description: '4K IPS panel with USB-C 96W PD, ideal for hybrid workstations.',
     price: 499.00,
-    stock: 18,
+    stock: 0,
     specs: { Resolution: '3840×2160', Panel: 'IPS Nano', Refresh: '60 Hz', Connectivity: 'USB-C, HDMI, DP' },
   },
   {
@@ -83,7 +84,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Storage',
     description: '4-bay NAS for SMB, compatible with Synology hybrid cloud backup.',
     price: 599.00,
-    stock: 9,
+    stock: 0,
     specs: { Bays: '4x 3.5" SATA', CPU: 'AMD Ryzen R1600', RAM: '4 GB ECC', Network: '2x GbE' },
   },
   {
@@ -92,7 +93,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     category: 'Peripherals',
     description: 'Backlit wireless keyboard with smart actions and multi-device pairing.',
     price: 119.00,
-    stock: 34,
+    stock: 0,
     specs: { Connection: 'Bluetooth / Logi Bolt', Battery: '10 days backlit', Layout: 'Full-size', OS: 'Mac / Win' },
   },
 ]
@@ -136,7 +137,7 @@ export default function App() {
 
   useEffect(() => {
     setLoading(true)
-    fetch('/sales/inventoryItems')
+    fetch('http://localhost:5255/sales/items')
       .then(r => r.json())
       .then(data => setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS))
       .catch(() => setProducts(FALLBACK_PRODUCTS))
@@ -146,6 +147,8 @@ export default function App() {
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))]
   const filtered = filterCategory === 'All' ? products : products.filter(p => p.category === filterCategory)
 
+
+  //Auth
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setAuthLoading(true)
@@ -214,7 +217,7 @@ export default function App() {
     if (!orderModal) return
     setOrderStatus('placing')
     try {
-      const res = await fetch('/sales/order', {
+      const res = await fetch('http://localhost:5255/sales/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
