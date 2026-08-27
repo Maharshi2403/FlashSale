@@ -139,13 +139,13 @@ export default function App() {
   useEffect(() => {
     let disposed = false
     const connection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5255/hubs/inventory', {
+      .withUrl('https://flashsale-syue.onrender.com/hubs/inventory', {
         transport: HttpTransportType.WebSockets,
       })
       .withAutomaticReconnect()
       .build()
 
-    fetch('http://localhost:5255/sales/items')
+    fetch('https://flashsale-syue.onrender.com/sales/items')
       .then(response => response.json())
       .then(data => {
         if (!disposed) setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS)
@@ -222,7 +222,7 @@ export default function App() {
     if (!authState) return
     setOrdersLoading(true)
     try {
-      const res = await fetch('http://localhost:5255/sales/orderview', {
+      const res = await fetch('https://flashsale-syue.onrender.com/sales/orderview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
         body: JSON.stringify({ username: authState.username }),
@@ -246,7 +246,7 @@ export default function App() {
     if (!orderModal) return
     setOrderStatus('placing')
     try {
-      const res = await fetch('http://localhost:5255/sales/order', {
+      const res = await fetch('https://flashsale-syue.onrender.com/sales/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
