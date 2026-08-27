@@ -20,7 +20,7 @@ builder.Services.AddSingleton<OrderQueue>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocal", policy => policy
-        .WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8443")
+        .WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8443", "https://flash-sale-seven.vercel.app")
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());
