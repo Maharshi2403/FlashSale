@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using System.Threading.Channels;
-using FlashSale.Api.OrderBook;
-using FlashSale.Api.OrderBook.Inventory;
-using FlashSale.Api.OrderBook.OrderChannel;
+using FlashSale.Api.OrderBook.InventoryManager;
 
 namespace FlashSale.Api.Endpoints;
+
+public record PlaceOrderRequest(long UserId, int ProductId, int Quantity, decimal Price);
+
 public static class SaleEndpoints
 {    
 
@@ -30,35 +30,24 @@ public static class SaleEndpoints
         // will display inve
         route.MapGet("/items", () =>
         {
-            var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
-            var productList = new List<object>();
-            foreach (var product in inventory.dic.Values)
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
+            var productList = inventory.Products.Select(product => new
             {
-                productList.Add(new {
-                    id = product.Id.ToString(),
-                    name = product.Name,
-                    category = product.Category ?? "Equipment",
-                    description = product.Description ?? string.Empty,
-                    price = product.Price,
-                    stock = product.Quantity,
-                    specs = product.Specs ?? new Dictionary<string,string>()
-                });
-            }
+                id = product.Id,
+                name = product.Name,
+                category = product.Category,
+                description = product.Description,
+                price = product.Price,
+                stock = product.Quantity,
+                specs = product.Specs
+            }).ToList();
 
             return Results.Ok(productList);
         });
 
-        route.MapGet("/orderview", () =>
-        {   
-            var orderQueue = app.ServiceProvider.GetRequiredService<OrderQueue>();
-            List<string> orderList = new List<string>();
-            foreach (var order in orderQueue.Orders)
-            {
-                var s = $"Product ID: {order.ProductId}, Quantity: {order.Quantity}, Total Price: {order.TotalPrice}, User ID: {order.userId}, Processing Time: {order.ProcessingTimeNanoseconds} ns / {order.ProcessingTimeMicroseconds:F3} us";
-                orderList.Add(s);
-            }
-            return Results.Ok(orderList);
-        });
+        route.MapGet("/orderview", () => Results.Ok(Array.Empty<object>()));
+
+
          
         // Manually update inventory from CSV file, this endpoint can be used to refresh the inventory without restarting the application.
         // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
@@ -66,38 +55,18 @@ public static class SaleEndpoints
         // good solution - this route should pause POST/order request untile invenotry gets updated 
          route.MapGet("/resetInventory", () =>
         {   
-            var inventory = app.ServiceProvider.GetRequiredService<Inventory>();
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             inventory.PopulateInventory();
-            List<string> productList = new List<string>();
-            foreach (var product in inventory.dic.Values)
-            {
-                var s = $"Product ID: {product.Id}, Name: {product.Name}, Quantity: {product.Quantity}, Price: {product.Price}";
-                productList.Add(s);
-            }
-            return Results.Ok(productList);
+            return Results.Ok(inventory.Products);
         });
 
       
 
-        route.MapPost("/order", async (Sale sale) =>
+        route.MapPost("/order", (PlaceOrderRequest order) =>
         {
-            // recalling OBJ channel and queue initiated at build time
-            var channel = app.ServiceProvider.GetRequiredService<OrderChannel>();
-            var queue = app.ServiceProvider.GetRequiredService<OrderQueue>();
+            var confirm = app.ServiceProvider.GetRequiredService<DisruptorEngine>().PublishOrder(order.UserId, order.ProductId, order.Quantity, order.Price);
             
-
-            try
-            {    
-                // write order in channel
-                await channel.Writer.WriteAsync(sale);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error enqueuing order: {ex.Message}");
-                return Results.Problem("Error processing order.");
-            }
-
-            return Results.Created($"/sales/{sale.ProductId}", sale);
+            return Results.Accepted($"/sales/orders/{confirm}", new { confirm });
         });
 
         return app;

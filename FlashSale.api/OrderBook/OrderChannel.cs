@@ -1,25 +1,26 @@
-using System.Threading.Channels;
-using FlashSale.Api.OrderBook.Inventory;
-namespace FlashSale.Api.OrderBook.OrderChannel;
-public class OrderChannel
-{
-    public Channel<Sale> channel;
+// using System.Threading.Channels;
+// using FlashSale.Api.OrderBook.InventoryManager;
+// using OrderEventMessage = FlashSale.Api.OrderBook.OrderEvent.OrderEvent;
+// namespace FlashSale.Api.OrderBook.OrderChannel;
+// public class OrderChannel
+// {
+//     public Channel<OrderEventMessage> channel;
     
-    public ChannelWriter<Sale> Writer => channel.Writer;
+//     public ChannelWriter<OrderEventMessage> Writer => channel.Writer;
 
-    public ChannelReader<Sale> Reader => channel.Reader;
-    public OrderChannel()
-    {
-        // Initialize the order channel
-        channel = Channel.CreateUnbounded<Sale>(
-            new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
+//     public ChannelReader<OrderEventMessage> Reader => channel.Reader;
+//     public OrderChannel()
+//     {
+//         // Initialize the order channel
+//         channel = Channel.CreateUnbounded<OrderEventMessage>(
+//             new UnboundedChannelOptions
+//             {
+//                 SingleReader = true,
+//                 SingleWriter = false,
                 
 
-            }
-        );
+//             }
+//         );
         
-    }
-}
+//     }
+// }

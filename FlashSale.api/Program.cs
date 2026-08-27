@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using FlashSale.Api.Endpoints;
+using FlashSale.Api.Hubs;
 using FlashSale.Api.OrderBook;
-using FlashSale.Api.OrderBook.Inventory;
-using FlashSale.Api.OrderBook.OrderChannel;
+using FlashSale.Api.OrderBook.InventoryManager;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<OrderChannel>();
-builder.Services.AddSingleton<OrderProcessing>(sp =>
-    new OrderProcessing(sp.GetRequiredService<OrderChannel>().channel, sp.GetRequiredService<Inventory>(), sp.GetRequiredService<OrderQueue>()));
+builder.Services.AddSignalR();
+// builder.Services.AddSingleton<OrderChannel>();
+
 builder.Services.AddSingleton<OrderQueue>();
 // CORS: allow local front-end dev origins to call the API
 builder.Services.AddCors(options =>
@@ -26,9 +26,14 @@ builder.Services.AddCors(options =>
         .AllowCredentials());
 });
 //populate inventory
-Inventory inventory = new Inventory(builder.Environment.ContentRootPath);
-inventory.PopulateInventory();
-builder.Services.AddSingleton<Inventory>(inventory);
+
+builder.Services.AddSingleton<DisruptorEngine>(_ =>
+    new DisruptorEngine(
+        builder.Environment.ContentRootPath,
+        _.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<InventoryHub>>(),
+        4096));
+
+
 
 //db connection
 // Only add DbContext if a DefaultConnection is provided. This allows running without Postgres.
@@ -44,8 +49,8 @@ if (useDatabase)
 
 var app = builder.Build();
 
-var orderProcessing = app.Services.GetRequiredService<OrderProcessing>();
-_ = Task.Run(() => orderProcessing.liveReader());
+var disruptorEngine = app.Services.GetRequiredService<DisruptorEngine>();
+disruptorEngine.Start();
 
 // For API visulization and testing
 
@@ -54,6 +59,7 @@ _ = Task.Run(() => orderProcessing.liveReader());
 
 // Enable CORS for local development UIs
 app.UseCors("AllowLocal");
+app.MapHub<InventoryHub>("/hubs/inventory");
 
 // Map endpoints. Auth endpoints require a configured database; skip them if no DB is provided.
 if (useDatabase)

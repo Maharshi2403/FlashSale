@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr'
 
 const THEMES = [
   { id: 'arctic', label: 'Arctic', dot: '#1a56ff' },
@@ -136,12 +137,40 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
+    let disposed = false
+    const connection = new HubConnectionBuilder()
+      .withUrl('http://localhost:5255/hubs/inventory', {
+        transport: HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build()
+
     fetch('http://localhost:5255/sales/items')
-      .then(r => r.json())
-      .then(data => setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS))
-      .catch(() => setProducts(FALLBACK_PRODUCTS))
-      .finally(() => setLoading(false))
+      .then(response => response.json())
+      .then(data => {
+        if (!disposed) setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS)
+      })
+      .catch(() => {
+        if (!disposed) setProducts(FALLBACK_PRODUCTS)
+      })
+      .finally(() => {
+        if (!disposed) setLoading(false)
+      })
+
+    connection.on('StockUpdated', (update: { productId: number; stock: number }) => {
+      setProducts(current => current.map(product =>
+        Number(product.id) === update.productId
+          ? { ...product, stock: update.stock }
+          : product,
+      ))
+    })
+
+    connection.start().catch(error => console.error('Inventory live updates unavailable:', error))
+
+    return () => {
+      disposed = true
+      connection.stop()
+    }
   }, [])
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))]
@@ -193,7 +222,7 @@ export default function App() {
     if (!authState) return
     setOrdersLoading(true)
     try {
-      const res = await fetch('/sales/orderview', {
+      const res = await fetch('http://localhost:5255/sales/orderview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
         body: JSON.stringify({ username: authState.username }),
@@ -223,7 +252,7 @@ export default function App() {
           'Content-Type': 'application/json',
           ...(authState ? { Authorization: `Bearer ${authState.token}` } : {}),
         },
-        body: JSON.stringify({ productId: orderModal.id, quantity: orderQty }),
+        body: JSON.stringify({userId: 1, productId: orderModal.id, quantity: orderQty, price: 400}),
       })
       if (!res.ok) throw new Error()
       setOrderStatus('success')
