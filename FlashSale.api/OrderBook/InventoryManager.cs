@@ -17,45 +17,31 @@ public class InventoryManager
    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, Product> _inventory;
    private readonly string inventoryFilePath;
 
-   public InventoryManager(string contentRootPath)
+   public InventoryManager(string inventory_path)
     {
         _inventory = new ();
-        inventoryFilePath = Path.Combine(contentRootPath, "OrderBook", "itemlist.csv");
+        inventoryFilePath = inventory_path;
 
     }
 
    // populate inventory with products
    public void PopulateInventory(){
-        var candidates = new string[] {
-             inventoryFilePath,
-             Path.Combine(AppContext.BaseDirectory ?? string.Empty, "OrderBook", "itemlist.csv"),
-             Path.Combine(Directory.GetCurrentDirectory(), "OrderBook", "itemlist.csv"),
-             "OrderBook/itemlist.csv",
-        };
-
-        var foundPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
-        if (foundPath == null)
-        {
-            Console.WriteLine($"Inventory file not found. Checked paths:");
-            foreach(var p in candidates)
-            {
-                 Console.WriteLine($" - {p}");
-            }
-            return;
-        }
-
-        Console.WriteLine($"Using inventory file: {foundPath}");
+     
+         
+        Console.WriteLine($"Using inventory file: {inventoryFilePath}");
         _inventory.Clear();
 
-        var lines = File.ReadAllLines(foundPath);
-        int i = 0;
+        var lines = File.ReadAllLines(inventoryFilePath);
+       
       foreach(var line in lines){
+            // skip empty lines in csv
             if (string.IsNullOrWhiteSpace(line)) continue;
+
             var parts = SplitCsvLine(line);
 
             // skip CSV header if present
             if (parts.Length > 0 && parts[0].Trim().Equals("id", StringComparison.OrdinalIgnoreCase)) continue;
-
+            
             Product? product = null;
 
             if (parts.Length >= 7)
@@ -128,7 +114,7 @@ public class InventoryManager
             }
 
             _inventory[product.Id] = product;
-            i++;
+           
         }
 
     }
@@ -337,6 +323,16 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
             data.State = OrderState.COMPLETED;
             Interlocked.Increment(ref _successCount);
             
+            string orderlogs_path = "data/orderlogs.csv";
+            string order_query = string.Join(",",
+             data.OrderId,
+             data.ProductId,
+             data.Quantity,
+             data.ReservationToken,
+             data.Price,
+             data.Timestamp
+            );
+            File.AppendAllText(orderlogs_path, order_query + Environment.NewLine);
             // Log completed order
             Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }

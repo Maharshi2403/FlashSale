@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr'
 
+const isLocalhost = Boolean(
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '[::1]' || // IPv6 localhost
+  window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/) // 127.0.0.1
+);
+
 const THEMES = [
   { id: 'arctic', label: 'Arctic', dot: '#1a56ff' },
   { id: 'obsidian', label: 'Obsidian', dot: '#a3ff47' },
@@ -139,13 +145,13 @@ export default function App() {
   useEffect(() => {
     let disposed = false
     const connection = new HubConnectionBuilder()
-      .withUrl('https://flashsale-syue.onrender.com/hubs/inventory', {
+      .withUrl('http://0.0.0.0:5255/hubs/inventory', {
         transport: HttpTransportType.WebSockets,
       })
       .withAutomaticReconnect()
       .build()
 
-    fetch('https://flashsale-syue.onrender.com/sales/items')
+    fetch('http://0.0.0.0:5255/sales/items')
       .then(response => response.json())
       .then(data => {
         if (!disposed) setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS)
@@ -222,7 +228,7 @@ export default function App() {
     if (!authState) return
     setOrdersLoading(true)
     try {
-      const res = await fetch('https://flashsale-syue.onrender.com/sales/orderview', {
+      const res = await fetch(isLocalhost? 'http://0.0.0.0:5255/sales/items': 'https://flashsale-syue.onrender.com/sales/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
         body: JSON.stringify({ username: authState.username }),
@@ -246,7 +252,7 @@ export default function App() {
     if (!orderModal) return
     setOrderStatus('placing')
     try {
-      const res = await fetch('https://flashsale-syue.onrender.com/sales/order', {
+      const res = await fetch('http://0.0.0.0:5255/sales/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
