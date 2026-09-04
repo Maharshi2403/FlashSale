@@ -10,3 +10,5 @@ public class Product
     public string Description { get; set; } = string.Empty;
     public Dictionary<string, string> Specs { get; set; } = new Dictionary<string, string>();
 }
+
+

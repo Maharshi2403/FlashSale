@@ -6,13 +6,13 @@ using  InventoryManager = FlashSale.Api.OrderBook.InventoryManager.InventoryMana
 using FlashSale.Api.OrderBook.OrderEvent;
 using FlashSale.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using FlashSale.Api.OrderBook;
 
 public class DisruptorEngine
 {
     public readonly Disruptor<OrderEventMessage> _disruptor;
     
     public readonly RingBuffer<OrderEventMessage> _ringBuffer; 
-
 
     private readonly InventoryManager _inventory;
     private long _orderIdSequence = 0;
@@ -21,6 +21,7 @@ public class DisruptorEngine
     public DisruptorEngine(string contentRootPath, IHubContext<InventoryHub> hubContext, int bufferSize = 4096)
     {
         _inventory = new InventoryManager(contentRootPath);
+        
         _inventory.PopulateInventory();
   
         // Create Disruptor with single producer
@@ -55,7 +56,7 @@ public class DisruptorEngine
     /// <summary>
     /// Publish order to ring buffer (non-blocking).
     /// </summary>
-    public long PublishOrder(long userId, int productId, int quantity, decimal price)
+    public long PublishOrder(string userId, int productId, int quantity, decimal price)
     {
         var orderId = Interlocked.Increment(ref _orderIdSequence);
         

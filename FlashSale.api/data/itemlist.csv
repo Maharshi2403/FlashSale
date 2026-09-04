@@ -1,5 +1,5 @@
 id,name,category,description,price,stock,specs
-1,Lenovo Thinkstation P520,Equipment,"High-end workstation for CAD/3D workloads",400,44,CPU=Intel Xeon;RAM=64GB;Storage=1TB NVMe
+1,Lenovo Thinkstation P520,Equipment,"High-end workstation for CAD/3D workloads",400,45,CPU=Intel Xeon;RAM=64GB;Storage=1TB NVMe
 2,Lenovo T490,Equipment,"Business laptop, 14-inch",400,21,CPU=Intel Core i7;RAM=16GB;Storage=512GB SSD
 3,Lenovo T480,Equipment,"Business laptop, 14-inch older gen",400,31,CPU=Intel Core i5;RAM=8GB;Storage=256GB SSD
 4,Lenovo T470,Equipment,"Business laptop, 14-inch older gen",400,26,CPU=Intel Core i5;RAM=8GB;Storage=256GB SSD

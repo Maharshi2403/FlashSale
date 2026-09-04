@@ -15,10 +15,13 @@ public class InventoryManager
 {  
     
    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, Product> _inventory;
+
+   public Dictionary<string, List<OrderEventMessage>> _orders;
    private readonly string inventoryFilePath;
 
    public InventoryManager(string inventory_path)
     {
+        _orders = new();
         _inventory = new ();
         inventoryFilePath = inventory_path;
 
@@ -206,27 +209,27 @@ public class InventoryManager
 
 }
 
-public class OrderQueue
-{
-    private Queue<OrderEventMessage> queue = new Queue<OrderEventMessage>();
-    public List<OrderEventMessage> Orders { get; } = new List<OrderEventMessage>();
+// public class OrderQueue
+// {
+//     private Queue<OrderEventMessage> queue = new Queue<OrderEventMessage>();
+//     public List<OrderEventMessage> Orders { get; } = new List<OrderEventMessage>();
 
-    public void Enqueue(OrderEventMessage sale)
-    {
-        queue.Enqueue(sale);
-        Orders.Add(sale);
-    }
+//     public void Enqueue(OrderEventMessage sale)
+//     {
+//         queue.Enqueue(sale);
+//         Orders.Add(sale);
+//     }
 
-    public OrderEventMessage Dequeue()
-    {
-        return queue.Dequeue();
-    }
+//     public OrderEventMessage Dequeue()
+//     {
+//         return queue.Dequeue();
+//     }
 
-    public bool IsEmpty()
-    {
-        return queue.Count == 0;
-    }
-}
+//     public bool IsEmpty()
+//     {
+//         return queue.Count == 0;
+//     }
+// }
 
 
 
@@ -326,6 +329,7 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
             string orderlogs_path = "data/orderlogs.csv";
             string order_query = string.Join(",",
              data.OrderId,
+             data.UserId,
              data.ProductId,
              data.Quantity,
              data.ReservationToken,
@@ -333,6 +337,37 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
              data.Timestamp
             );
             File.AppendAllText(orderlogs_path, order_query + Environment.NewLine);
+            Console.WriteLine("point1");
+            
+            // if user aleady orderd same product then just qty increase
+            lock (_inventory._orders)
+            {
+                if (_inventory._orders.ContainsKey(data.UserId))
+                {
+                    bool productFound = false;
+                    foreach(OrderEventMessage oem in _inventory._orders[data.UserId])
+                    {
+                        if(data.ProductId == oem.ProductId)
+                        {
+                            oem.Quantity++;
+                            productFound = true;
+                        }
+                    }
+
+                    if (!productFound)
+                    {
+                        _inventory._orders[data.UserId].Add(data);
+                        
+                    }
+                }
+                else
+                {
+                    _inventory._orders[data.UserId] = new List<OrderEventMessage>{data};
+                    Console.WriteLine(data.UserId);
+                }
+            }
+            
+            Console.WriteLine("point2");
             // Log completed order
             Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }

@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 // builder.Services.AddSingleton<OrderChannel>();
 
-builder.Services.AddSingleton<OrderQueue>();
+
 // CORS: allow local front-end dev origins to call the API
 builder.Services.AddCors(options =>
 {

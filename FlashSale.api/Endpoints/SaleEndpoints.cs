@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using FlashSale.Api.OrderBook.InventoryManager;
+using FlashSale.Api.OrderBook;
+using OrderEventMessage = FlashSale.Api.OrderBook.OrderEvent.OrderEvent;
 
 namespace FlashSale.Api.Endpoints;
 
-public record PlaceOrderRequest(long UserId, int ProductId, int Quantity, decimal Price);
+public record PlaceOrderRequest(string UserId, int ProductId, int Quantity, decimal Price);
 
 public static class SaleEndpoints
 {    
@@ -45,9 +47,34 @@ public static class SaleEndpoints
             return Results.Ok(productList);
         });
 
-        route.MapGet("/orderview", () => Results.Ok(Array.Empty<object>()));
+        route.MapGet("/orderview", (string userId) =>
+        {
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
+            OrderEventMessage[] orders;
 
+            lock (inventory._orders)
+            {
+                orders = inventory._orders.TryGetValue(userId, out var userOrders)
+                    ? userOrders.ToArray()
+                    : Array.Empty<OrderEventMessage>();
+            }
 
+            return Results.Ok(orders.Select(order => new
+            {
+                orderId = order.OrderId,
+                userId = order.UserId,
+                productId = order.ProductId,
+                quantity = order.Quantity,
+                price = order.Price,
+                state = order.State,
+                reservationToken = order.ReservationToken,
+                inventoryReserved = order.InventoryReserved,
+                timestamp = order.Timestamp
+            }));
+
+        });
+
+       
          
         // Manually update inventory from CSV file, this endpoint can be used to refresh the inventory without restarting the application.
         // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
@@ -61,7 +88,7 @@ public static class SaleEndpoints
         });
 
       
-
+        
         route.MapPost("/order", (PlaceOrderRequest order) =>
         {
             var confirm = app.ServiceProvider.GetRequiredService<DisruptorEngine>().PublishOrder(order.UserId, order.ProductId, order.Quantity, order.Price);

@@ -4,7 +4,7 @@ public class OrderEvent{
     
      // 64-byte cache line 1
     public long OrderId;
-    public long UserId;
+    public string UserId;
     public int ProductId;
     public int Quantity;
     public decimal Price;
@@ -22,7 +22,7 @@ public class OrderEvent{
     public OrderEvent(){
         
     }
-    public OrderEvent(long orderId, long userId, int productId, int qty, decimal price)
+    public OrderEvent(long orderId, string userId, int productId, int qty, decimal price)
     {
         OrderId = orderId;
         UserId = userId;
