@@ -20,7 +20,7 @@ public class DisruptorEngine
     
     public DisruptorEngine(string contentRootPath, IHubContext<InventoryHub> hubContext, int bufferSize = 4096)
     {
-        _inventory = new InventoryManager(contentRootPath);
+        _inventory = new InventoryManager(contentRootPath, hubContext);
         
         _inventory.PopulateInventory();
   
@@ -36,7 +36,7 @@ public class DisruptorEngine
         // Wire up handler chain
         dslDisruptor
             .HandleEventsWith(new OrderValidationHandler())
-            .Then(new InventoryReservationHandler(_inventory, hubContext))
+            .Then(new InventoryReservationHandler(_inventory))
             .Then(_completionHandler = new CompletionHandler(_inventory));
                         
         _disruptor = dslDisruptor;

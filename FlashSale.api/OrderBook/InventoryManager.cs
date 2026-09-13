@@ -19,13 +19,18 @@ public class InventoryManager
    public Dictionary<string, List<OrderEventMessage>> _orders;
    private readonly string inventoryFilePath;
 
-   public InventoryManager(string inventory_path)
+   private readonly IHubContext<InventoryHub> _hub;
+
+   public InventoryManager(string inventory_path, IHubContext<InventoryHub> hub)
     {
         _orders = new();
         _inventory = new ();
         inventoryFilePath = inventory_path;
+         _hub = hub;
 
     }
+
+    
 
    // populate inventory with products
    public void PopulateInventory(){
@@ -172,9 +177,21 @@ public class InventoryManager
                 break;
         }
     }
+
+
+    public void PublishUpadate(int productId)
+    {
+         _ = _hub.Clients.All.SendAsync(
+            "StockUpdated",
+            new StockUpdate(productId, GetStock(productId)));   
+        
+    }
+
     // get stock 
     public int GetStock(int productId)
         => _inventory.TryGetValue(productId, out var stock) ? stock.Quantity : 0;
+
+    
 
     public IReadOnlyCollection<Product> Products => _inventory.Values.ToArray();
 
@@ -266,12 +283,12 @@ public class OrderValidationHandler : IEventHandler<OrderEventMessage>
 public class InventoryReservationHandler : IEventHandler<OrderEventMessage>
 {
     private readonly InventoryManager _inventory;
-    private readonly IHubContext<InventoryHub> _hub;
     
-    public InventoryReservationHandler(InventoryManager inventory, IHubContext<InventoryHub> hub)
+    
+    public InventoryReservationHandler(InventoryManager inventory)
     {
         _inventory = inventory;
-        _hub = hub;
+       
     }
     
     public void OnEvent(OrderEventMessage data, long sequence, bool endOfBatch)
@@ -286,16 +303,18 @@ public class InventoryReservationHandler : IEventHandler<OrderEventMessage>
             data.ReservationToken = token;
             data.InventoryReserved = data.Quantity;
             data.State = OrderState.INVENTORY_RESERVED;
-            _ = _hub.Clients.All.SendAsync(
-                "StockUpdated",
-                new StockUpdate(data.ProductId, _inventory.GetStock(data.ProductId)));
+       
         }
         else
         {
             data.State = OrderState.FAILED;
         }
+
+        _inventory.PublishUpadate(data.ProductId);
     }
 }
+
+
 
 
 /// <summary>
@@ -382,7 +401,15 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
             Console.WriteLine($"Order {data.OrderId}: FAILED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }
     }
+
+
+   
+   
+
     
     public long GetSuccessCount() => Interlocked.Read(ref _successCount);
     public long GetFailureCount() => Interlocked.Read(ref _failureCount);
-}
+};
+
+
+

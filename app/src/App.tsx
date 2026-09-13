@@ -33,13 +33,30 @@ interface Product {
 }
 
 interface Order {
-  orderId: string
-  productId: string
-  productName: string
+  orderId: number
+  userId: string
+  productId: number
   quantity: number
-  totalPrice: number
-  status: string
-  createdAt: string
+  price: number
+  state: string | number
+  timestamp: number
+}
+
+const ORDER_STATE_LABELS: Record<number, string> = {
+  [-1]: 'FAILED',
+  0: 'PENDING',
+  1: 'VALIDATED',
+  2: 'INVENTORY_RESERVED',
+  3: 'COMPLETED',
+}
+
+function getOrderStateLabel(state: string | number | null | undefined) {
+  if (typeof state === 'number') return ORDER_STATE_LABELS[state] ?? 'UNKNOWN'
+
+  const numericState = Number(state)
+  return Number.isNaN(numericState)
+    ? String(state ?? 'PENDING').toUpperCase()
+    : ORDER_STATE_LABELS[numericState] ?? 'UNKNOWN'
 }
 
 
@@ -115,6 +132,7 @@ export default function App() {
   const [showOrders, setShowOrders] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null)
   const [orderModal, setOrderModal] = useState<Product | null>(null)
   const [orderQty, setOrderQty] = useState(1)
   const [orderStatus, setOrderStatus] = useState<'idle' | 'placing' | 'success' | 'error'>('idle')
@@ -228,10 +246,10 @@ export default function App() {
     if (!authState) return
     setOrdersLoading(true)
     try {
-      const res = await fetch(isLocalhost? 'http://0.0.0.0:5255/sales/items': 'https://flashsale-syue.onrender.com/sales/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
-        body: JSON.stringify({ username: authState.username }),
+      const baseUrl = isLocalhost ? 'http://0.0.0.0:5255' : 'https://flashsale-syue.onrender.com'
+      const query = new URLSearchParams({ userId: authState.username })
+      const res = await fetch(`${baseUrl}/sales/orderview?${query}`, {
+        headers: { Authorization: `Bearer ${authState.token}` },
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -248,8 +266,39 @@ export default function App() {
     fetchOrders()
   }
 
+  async function cancelOrder(orderId: number, productId: number) {
+    if (!authState) return
+    setCancellingOrderId(orderId)
+    try {
+      const baseUrl = isLocalhost ? 'http://0.0.0.0:5255' : 'https://flashsale-syue.onrender.com'
+      const query = new URLSearchParams({
+        orderId: String(orderId),
+        userId: authState.username,
+        productId: String(productId),
+      })
+      const res = await fetch(`${baseUrl}/sales/cancelorder?${query}`, {
+        method: 'DELETE',
+        headers: {
+          ...(authState ? { Authorization: `Bearer ${authState.token}` } : {}),
+        },
+      })
+      if (!res.ok) throw new Error()
+      await new Promise(resolve => setTimeout(resolve, 250))
+      await fetchOrders()
+    } catch {
+      console.log(Error);
+    } finally {
+      setCancellingOrderId(null)
+    }
+  }
+
   async function placeOrder() {
     if (!orderModal) return
+    if (!authState) {
+      setOrderModal(null)
+      setShowAuth(true)
+      return
+    }
     setOrderStatus('placing')
     try {
       const res = await fetch('http://0.0.0.0:5255/sales/order', {
@@ -258,9 +307,11 @@ export default function App() {
           'Content-Type': 'application/json',
           ...(authState ? { Authorization: `Bearer ${authState.token}` } : {}),
         },
-        body: JSON.stringify({userId: 1, productId: orderModal.id, quantity: orderQty, price: 400}),
+        body: JSON.stringify({ userId: authState.username, productId: orderModal.id, quantity: orderQty, price: orderModal.price }),
       })
       if (!res.ok) throw new Error()
+      await new Promise(resolve => setTimeout(resolve, 250))
+      await fetchOrders()
       setOrderStatus('success')
       setSuccessMsg(`Ordered ${orderQty}× ${orderModal.name}`)
       setTimeout(() => {
@@ -536,7 +587,7 @@ export default function App() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['Order ID', 'Product', 'Qty', 'Total', 'Status', 'Date'].map(col => (
+                      {['Order ID', 'Product', 'Qty', 'Total', 'Status', 'Date', ''].map(col => (
                         <th key={col} style={{ textAlign: 'left', padding: '0 8px 10px', fontSize: 10, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{col.toUpperCase()}</th>
                       ))}
                     </tr>
@@ -545,14 +596,25 @@ export default function App() {
                     {orders.map((order, i) => (
                       <tr key={order.orderId ?? i} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td className="mono" style={{ padding: '12px 8px', fontSize: 11, color: 'var(--muted)' }}>{order.orderId}</td>
-                        <td style={{ padding: '12px 8px', fontSize: 13 }}>{order.productName}</td>
+                        <td style={{ padding: '12px 8px', fontSize: 13 }}>{products.find(product => Number(product.id) === order.productId)?.name ?? `Product ${order.productId}`}</td>
                         <td className="mono" style={{ padding: '12px 8px', fontSize: 12, textAlign: 'right' }}>{order.quantity}</td>
-                        <td className="mono" style={{ padding: '12px 8px', fontSize: 12 }}>${order.totalPrice?.toFixed(2)}</td>
+                        <td className="mono" style={{ padding: '12px 8px', fontSize: 12 }}>${(order.price * order.quantity).toFixed(2)}</td>
                         <td style={{ padding: '12px 8px' }}>
-                          <span style={{ fontSize: 10, padding: '3px 7px', borderRadius: 2, background: 'var(--tag)', color: 'var(--tag-fg)', fontWeight: 600, letterSpacing: '0.06em' }}>{(order.status ?? 'PENDING').toUpperCase()}</span>
+                          <span style={{ fontSize: 10, padding: '3px 7px', borderRadius: 2, background: 'var(--tag)', color: 'var(--tag-fg)', fontWeight: 600, letterSpacing: '0.06em' }}>{getOrderStateLabel(order.state)}</span>
                         </td>
                         <td className="mono" style={{ padding: '12px 8px', fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '—'}
+                          {order.timestamp ? order.timestamp : '—'}
+                        </td>
+                        <td style={{ padding: '12px 8px' }}>
+                          {getOrderStateLabel(order.state) === 'COMPLETED' && (
+                            <button
+                              onClick={() => cancelOrder(order.orderId, order.productId)}
+                              disabled={cancellingOrderId === order.orderId}
+                              style={{ border: '1px solid var(--danger)', borderRadius: 3, background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: '4px 7px', fontFamily: 'inherit', opacity: cancellingOrderId === order.orderId ? 0.6 : 1 }}
+                            >
+                              {cancellingOrderId === order.orderId ? 'Cancelling…' : 'Cancel'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -606,14 +668,14 @@ function ProductCard({ product, onOrder }: { product: Product; onOrder: () => vo
 
       {/* Specs (collapsed by default) */}
       <button
-        onClick={() => setExpanded(e => !e)}
+        
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: 'var(--muted)', fontFamily: 'inherit', textAlign: 'left', marginBottom: expanded ? 10 : 0, display: 'flex', alignItems: 'center', gap: 4 }}
       >
         <span style={{ fontSize: 10, transition: 'transform 0.15s', display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
-        {expanded ? 'Hide specs' : 'View specs'}
+        {'View specs'}
       </button>
 
-      {expanded && (
+      { (
         <div style={{ background: 'var(--tag)', borderRadius: 3, padding: '10px 12px', marginBottom: 12 }}>
           {Object.entries(product.specs).map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>

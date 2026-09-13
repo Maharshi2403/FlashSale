@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using FlashSale.Api.OrderBook.InventoryManager;
 using FlashSale.Api.OrderBook;
+using FlashSale.Api.Hubs;
 using OrderEventMessage = FlashSale.Api.OrderBook.OrderEvent.OrderEvent;
 
 namespace FlashSale.Api.Endpoints;
 
 public record PlaceOrderRequest(string UserId, int ProductId, int Quantity, decimal Price);
+
+
 
 public static class SaleEndpoints
 {    
@@ -24,7 +27,9 @@ public static class SaleEndpoints
     // user
     // ---- order ==> user can post ordr request from here
 
-
+  
+    
+    
     public static IEndpointRouteBuilder MapSaleEndpoints(this IEndpointRouteBuilder app)
     {
         var route = app.MapGroup("/sales");
@@ -51,6 +56,7 @@ public static class SaleEndpoints
         {
             var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             OrderEventMessage[] orders;
+            Console.Write("order view request came in");
 
             lock (inventory._orders)
             {
@@ -90,10 +96,62 @@ public static class SaleEndpoints
       
         
         route.MapPost("/order", (PlaceOrderRequest order) =>
+
+
         {
+            // Restrict user for ordering same product again
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
+            OrderEventMessage[] orders;
+
+            lock (inventory._orders)
+            {
+                orders = inventory._orders.TryGetValue(order.UserId, out var userOrders)
+                    ? userOrders.ToArray()
+                    : Array.Empty<OrderEventMessage>();
+            }
+
+            if(orders.Any(o => o.ProductId == order.ProductId))
+            {
+                Console.WriteLine("User Aready have an existing order in this catagory");
+                return Results.Conflict(new
+                {
+                    accepted = false,
+                    message = "User Aready have an existing order in this catagory"
+                });
+            }
+
+
+
             var confirm = app.ServiceProvider.GetRequiredService<DisruptorEngine>().PublishOrder(order.UserId, order.ProductId, order.Quantity, order.Price);
             
             return Results.Accepted($"/sales/orders/{confirm}", new { confirm });
+        });
+
+        route.MapDelete("/cancelorder", (long orderId, string userId, int productId) =>
+        {
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
+            OrderEventMessage? orderToCancel = null;
+            Console.WriteLine("Order Cancelation request came in");
+            lock (inventory._orders)
+            {
+                if (inventory._orders.TryGetValue(userId, out var userOrders))
+                {
+                    orderToCancel = userOrders.FirstOrDefault(order => order.OrderId == orderId);
+                    if (orderToCancel?.State == FlashSale.Api.OrderBook.OrderEvent.OrderState.COMPLETED)
+                        userOrders.Remove(orderToCancel);
+                        
+                        }
+            }
+
+            if (orderToCancel == null)
+                return Results.NotFound(new { message = "Order not found." });
+
+            if (orderToCancel.State != FlashSale.Api.OrderBook.OrderEvent.OrderState.COMPLETED)
+                return Results.BadRequest(new { message = "Only completed orders can be cancelled." });
+
+            inventory.Release(orderToCancel.ProductId, orderToCancel.InventoryReserved);
+            inventory.PublishUpadate(productId);
+            return Results.Ok(new { orderId, state = "CANCELLED" });
         });
 
         return app;
