@@ -8,6 +8,9 @@ using FlashSale.Api.Hubs;
 using FlashSale.Api.OrderBook.OrderEvent;
 using OrderEventMessage = FlashSale.Api.OrderBook.OrderEvent.OrderEvent;
 using Microsoft.AspNetCore.SignalR;
+using SnowTicketMaster = FlashSale.Api.OrderBook.TicketMaster.TicketMaster;
+
+
 namespace FlashSale.Api.OrderBook.InventoryManager;
 
 
@@ -33,14 +36,20 @@ public class InventoryManager
     
 
    // populate inventory with products
-   public void PopulateInventory(){
+   public void PopulateInventory(List<Product>? apiInjection){
      
          
         Console.WriteLine($"Using inventory file: {inventoryFilePath}");
         _inventory.Clear();
 
         var lines = File.ReadAllLines(inventoryFilePath);
-       
+        if (apiInjection is not null)
+        {
+            
+        }
+        {
+            
+        }
       foreach(var line in lines){
             // skip empty lines in csv
             if (string.IsNullOrWhiteSpace(line)) continue;
@@ -177,6 +186,8 @@ public class InventoryManager
                 break;
         }
     }
+
+  
 
 
     public void PublishUpadate(int productId)
@@ -323,13 +334,16 @@ public class InventoryReservationHandler : IEventHandler<OrderEventMessage>
 public class CompletionHandler : IEventHandler<OrderEventMessage>
 {
     private readonly InventoryManager _inventory;
+
+    public SnowTicketMaster _snow_tm;
     private readonly Process _process = Process.GetCurrentProcess();
     private long _successCount = 0;
     private long _failureCount = 0;
     
-    public CompletionHandler(InventoryManager inventory)
+    public CompletionHandler(InventoryManager inventory, SnowTicketMaster snow_tm)
     {
         _inventory = inventory;
+        _snow_tm = snow_tm;
     }
     
     public void OnEvent(OrderEventMessage data, long sequence, bool endOfBatch)
@@ -356,11 +370,11 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
              data.Timestamp
             );
             File.AppendAllText(orderlogs_path, order_query + Environment.NewLine);
-            Console.WriteLine("point1");
+          
             
             // if user aleady orderd same product then just qty increase
-            lock (_inventory._orders)
-            {
+         
+            
                 if (_inventory._orders.ContainsKey(data.UserId))
                 {
                     bool productFound = false;
@@ -382,13 +396,14 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
                 else
                 {
                     _inventory._orders[data.UserId] = new List<OrderEventMessage>{data};
-                    Console.WriteLine(data.UserId);
+                    //Console.WriteLine(data.UserId);
                 }
-            }
             
-            Console.WriteLine("point2");
+            
+           
+            
             // Log completed order
-            Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
+            // Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }
         else if (data.State == OrderState.FAILED)
         {
@@ -398,7 +413,7 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
             if (data.InventoryReserved > 0)
                 _inventory.Release(data.ProductId, data.InventoryReserved);
                 
-            Console.WriteLine($"Order {data.OrderId}: FAILED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
+            // Console.WriteLine($"Order {data.OrderId}: FAILED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }
     }
 

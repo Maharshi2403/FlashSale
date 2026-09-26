@@ -1,8 +1,9 @@
-
+using FlashSale.Api.OrderBook.TicketMaster;
 using FlashSale.Api.Endpoints;
 using FlashSale.Api.Hubs;
 using FlashSale.Api.OrderBook;
 using FlashSale.Api.OrderBook.InventoryManager;
+using FlashSale.Api.Test;
 
 var builder = WebApplication.CreateBuilder(args);
 var inventory_path= builder.Configuration["Inventory:FilePath"];
@@ -50,11 +51,13 @@ builder.Services.AddSingleton<DisruptorEngine>(_ =>
         _.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<InventoryHub>>(),
         4096));
 
-
+builder.Services.AddSingleton<TestOrderProcessing>();
 var app = builder.Build();
 
 var disruptorEngine = app.Services.GetRequiredService<DisruptorEngine>();
 disruptorEngine.Start();
+
+
 
 // For API visulization and testing
 

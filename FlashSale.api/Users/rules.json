@@ -1,0 +1,11 @@
+[
+    {
+        "rule": 1, 
+        "catagory": 2, 
+        "item_type": 1, 
+        "prfuct_id": 1,
+        "penalties": {
+            "time": 1
+        }
+    }
+]

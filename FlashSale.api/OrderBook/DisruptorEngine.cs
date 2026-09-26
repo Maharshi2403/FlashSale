@@ -7,6 +7,9 @@ using FlashSale.Api.OrderBook.OrderEvent;
 using FlashSale.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using FlashSale.Api.OrderBook;
+using FlashSale.Api.OrderBook.TicketMaster;
+
+
 
 public class DisruptorEngine
 {
@@ -18,18 +21,20 @@ public class DisruptorEngine
     private long _orderIdSequence = 0;
     private readonly CompletionHandler _completionHandler;
     
+    public TicketMaster _snow_tm;
+
     public DisruptorEngine(string contentRootPath, IHubContext<InventoryHub> hubContext, int bufferSize = 4096)
     {
         _inventory = new InventoryManager(contentRootPath, hubContext);
-        
-        _inventory.PopulateInventory();
+        _snow_tm = new TicketMaster();
+        _inventory.PopulateInventory(null);
   
-        // Create Disruptor with single producer
+        // Orders can be published concurrently by multiple API requests.
         var dslDisruptor = new Disruptor<OrderEventMessage>(
             () => new OrderEventMessage(),
             bufferSize,
             TaskScheduler.Default,
-            ProducerType.Single,
+            ProducerType.Multi,
             new BusySpinWaitStrategy()
         );
         
@@ -37,7 +42,7 @@ public class DisruptorEngine
         dslDisruptor
             .HandleEventsWith(new OrderValidationHandler())
             .Then(new InventoryReservationHandler(_inventory))
-            .Then(_completionHandler = new CompletionHandler(_inventory));
+            .Then(_completionHandler = new CompletionHandler(_inventory, _snow_tm));
                         
         _disruptor = dslDisruptor;
         _ringBuffer = _disruptor.RingBuffer;
@@ -93,6 +98,10 @@ public class DisruptorEngine
     }
     
     public InventoryManager GetInventory() => _inventory;
+
+    public long GetSuccessCount() => _completionHandler.GetSuccessCount();
+
+    public long GetFailureCount() => _completionHandler.GetFailureCount();
 
 
 
