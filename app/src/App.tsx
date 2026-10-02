@@ -133,6 +133,7 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null)
+  const [orderCancelQty, setOrderCancelQty] = useState<Record<number, number>>({})
   const [orderModal, setOrderModal] = useState<Product | null>(null)
   const [orderQty, setOrderQty] = useState(1)
   const [orderStatus, setOrderStatus] = useState<'idle' | 'placing' | 'success' | 'error'>('idle')
@@ -161,7 +162,20 @@ export default function App() {
   }, [])
 
 
-
+async function fetch_inventory(){
+   
+    fetch('http://0.0.0.0:5255/sales/inventory')
+      .then(response => response.json())
+      .then(data => {
+        setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS)
+      })
+      .catch(() => {
+        setProducts(FALLBACK_PRODUCTS)
+      })
+      .finally(() => {
+       setLoading(false)
+      })
+}
 
   useEffect(() => {
     let disposed = false
@@ -271,7 +285,7 @@ export default function App() {
     fetchOrders()
   }
 
-  async function cancelOrder(orderId: number, productId: number) {
+  async function cancelOrder(orderId: number, productId: number, quantity: number) {
     if (!authState) return
     setCancellingOrderId(orderId)
     try {
@@ -280,6 +294,7 @@ export default function App() {
         orderId: String(orderId),
         userId: authState.username,
         productId: String(productId),
+        quantity: String(quantity),
       })
       const res = await fetch(`${baseUrl}/sales/cancelorder?${query}`, {
         method: 'DELETE',
@@ -290,7 +305,7 @@ export default function App() {
       if (!res.ok) throw new Error()
       await new Promise(resolve => setTimeout(resolve, 250))
       await fetchOrders()
-     
+      await fetch_inventory();
     
     } catch {
       console.log(Error);
@@ -319,7 +334,7 @@ export default function App() {
       if (!res.ok) throw new Error()
       await new Promise(resolve => setTimeout(resolve, 250))
       await fetchOrders()
-  
+      await fetch_inventory();
       setOrderStatus('success')
       setSuccessMsg(`Ordered ${orderQty}× ${orderModal.name}`)
       setTimeout(() => {
@@ -611,19 +626,23 @@ export default function App() {
                           {order.timestamp ? order.timestamp : '—'}
                         </td>
                         <td style={{ padding: '12px 8px' }}>
-                        <button onClick={() => setOrderQty(q => Math.max(1, order.quantity - 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>−</button>
-                          <span className="mono" style={{ width: 24, textAlign: 'center', fontSize: 14 }}>{orderQty}</span>
-                        <button onClick={() => setOrderQty(q => Math.min(order.quantity, q + 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>+</button>
-                                  {(
-                            
+                          {(() => {
+                            const cancelQty = Math.min(orderCancelQty[order.orderId] ?? 1, order.quantity)
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <button onClick={() => setOrderCancelQty(current => ({ ...current, [order.orderId]: Math.max(1, cancelQty - 1) }))} disabled={cancelQty <= 1} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: cancelQty <= 1 ? 'default' : 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', opacity: cancelQty <= 1 ? 0.5 : 1 }}>−</button>
+                                <span className="mono" style={{ width: 24, textAlign: 'center', fontSize: 14 }}>{cancelQty}</span>
+                                <button onClick={() => setOrderCancelQty(current => ({ ...current, [order.orderId]: Math.min(order.quantity, cancelQty + 1) }))} disabled={cancelQty >= order.quantity} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: cancelQty >= order.quantity ? 'default' : 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', opacity: cancelQty >= order.quantity ? 0.5 : 1 }}>+</button>
                             <button
-                              onClick={() => cancelOrder(order.orderId, order.productId)}
+                              onClick={() => cancelOrder(order.orderId, order.productId, cancelQty)}
                               disabled={cancellingOrderId === order.orderId}
                               style={{ border: '1px solid var(--danger)', borderRadius: 3, background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: '4px 7px', fontFamily: 'inherit', opacity: cancellingOrderId === order.orderId ? 0.6 : 1 }}
                             >
                               {cancellingOrderId === order.orderId ? 'Cancelling…' : 'Cancel'}
                             </button>
-                          )}
+                              </div>
+                            )
+                          })()}
                         </td>
                       </tr>
                     ))}

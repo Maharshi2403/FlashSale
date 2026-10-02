@@ -21,16 +21,31 @@ public sealed class TestOrderProcessing
       [Fact]
       public async Task Concurrency_http_parallel_test()
       {
-            using var resetResponse = await Client.GetAsync("/sales/resetInventory");
+            const string user = "mapatel";
+            const int submittedOrders = 100000;
+            const int initialStock = 100000;
+            using var resetResponse = await Client.PostAsJsonAsync(
+                  $"/sales/admin/resetInventory?userId={user}",
+                  new[]
+                  {
+                        new
+                        {
+                              id = 1,
+                              name = "Concurrency test product",
+                              category = "Test",
+                              description = "Product used by the concurrency HTTP test",
+                              price = 400,
+                              quantity = initialStock,
+                              specs = new Dictionary<string, string>()
+                        }
+                  });
             Assert.True(
                   resetResponse.IsSuccessStatusCode,
                   $"The API must be running at {Client.BaseAddress} before this test is executed.");
 
-            const int submittedOrders = 100000;
-            const int initialStock = 100000;
             var start = Stopwatch.GetTimestamp();
             var requests = Enumerable.Range(0, submittedOrders).Select(orderNumber =>
-                  Client.PostAsJsonAsync("/sales/order", new
+                  Client.PostAsJsonAsync("/sales/placeorder", new
                   {
                         userId = $"stress-user-{orderNumber}",
                         productId = 1,
@@ -59,16 +74,17 @@ public sealed class TestOrderProcessing
             do
             {
                   await Task.Delay(100, timeout.Token);
-                  stock = await ReadStockAsync(timeout.Token);
+                  stock = await ReadStockAsync(user, timeout.Token);
             }
             while (stock > expectedStock);
 
             Assert.Equal(expectedStock, stock);
       }
 
-      private static async Task<int> ReadStockAsync(CancellationToken cancellationToken)
+      private static async Task<int> ReadStockAsync(string user, CancellationToken cancellationToken)
       {
-            using var response = await Client.GetAsync("/sales/items", cancellationToken);
+            using var response = await Client.GetAsync(
+                  $"/sales/admin/liveinventory?userId={user}", cancellationToken);
             response.EnsureSuccessStatusCode();
 
             using var document = JsonDocument.Parse(

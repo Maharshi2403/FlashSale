@@ -8,7 +8,7 @@ using OrderEventMessage = FlashSale.Api.OrderBook.OrderEvent.OrderEvent;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Reflection.Metadata.Ecma335;
-using FlashSale.Api.OrderBook;
+
 
 namespace FlashSale.Api.Endpoints;
 
@@ -97,10 +97,14 @@ public static class SaleEndpoints
         // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
 
         // good solution - this route should pause POST/order request untile invenotry gets updated 
-         route.MapPost("/admin/resetInventory",(List<Product> product, string userId) =>
+         route.MapPost("/admin/resetInventory",(List<Product>? product, string userId) =>
         {   
+            if(product is not null){
+              inventory.PopulateInventory(product);
+            }else{
+                inventory.PopulateInventory(null);
+            }
             
-            inventory.PopulateInventory(product);
             return Results.Ok(inventory.Products);
         }).AddEndpointFilter<AdminFilter>();
 
@@ -223,31 +227,49 @@ public static class SaleEndpoints
             
         });
 
-        route.MapDelete("/cancelorder", (long orderId, string userId, int productId) =>
+        route.MapDelete("/cancelorder", (long orderId, string userId, int productId, int quantity) =>
         {
-            
+            if (quantity <= 0)
+                return Results.BadRequest(new { message = "Cancellation quantity must be greater than zero." });
+
             OrderEventMessage? orderToCancel = null;
+            var requestedQuantityExceedsOrder = false;
+            var orderCannotBeCancelled = false;
             Console.WriteLine("Order Cancelation request came in");
             lock (inventory._orders)
             {
                 if (inventory._orders.TryGetValue(userId, out var userOrders))
                 {
                     orderToCancel = userOrders.FirstOrDefault(order => order.OrderId == orderId);
-                    if (orderToCancel?.State == FlashSale.Api.OrderBook.OrderEvent.OrderState.COMPLETED)
-                        userOrders.Remove(orderToCancel);
-                        
+                    if (orderToCancel != null)
+                    {
+                        if (orderToCancel.State != FlashSale.Api.OrderBook.OrderEvent.OrderState.COMPLETED)
+                            orderCannotBeCancelled = true;
+                        else if (quantity > orderToCancel.Quantity)
+                            requestedQuantityExceedsOrder = true;
+                        else
+                        {
+                            orderToCancel.Quantity -= quantity;
+                            orderToCancel.InventoryReserved -= quantity;
+                            if (orderToCancel.Quantity == 0)
+                                userOrders.Remove(orderToCancel);
                         }
+                    }
+                }
             }
 
             if (orderToCancel == null)
                 return Results.NotFound(new { message = "Order not found." });
 
-            if (orderToCancel.State != FlashSale.Api.OrderBook.OrderEvent.OrderState.COMPLETED)
+            if (orderCannotBeCancelled)
                 return Results.BadRequest(new { message = "Only completed orders can be cancelled." });
 
-            inventory.Release(orderToCancel.ProductId, orderToCancel.InventoryReserved);
-            inventory.PublishUpadate(productId);
-            return Results.Ok(new { orderId, state = "CANCELLED" });
+            if (requestedQuantityExceedsOrder)
+                return Results.BadRequest(new { message = "Cancellation quantity cannot exceed the order quantity." });
+
+            inventory.Release(orderToCancel.ProductId, quantity);
+            inventory.PublishUpadate(orderToCancel.ProductId);
+            return Results.Ok(new { orderId, cancelledQuantity = quantity, remainingQuantity = orderToCancel.Quantity, state = orderToCancel.Quantity == 0 ? "CANCELLED" : "COMPLETED" });
         });
 
         return app;
