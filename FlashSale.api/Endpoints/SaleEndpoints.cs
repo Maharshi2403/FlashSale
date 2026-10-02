@@ -14,6 +14,8 @@ namespace FlashSale.Api.Endpoints;
 
 public record PlaceOrderRequest(string UserId, int ProductId, int Quantity, decimal Price);
 
+
+//Middelware for Filter Admin changes
 public  sealed class AdminFilter: IEndpointFilter
 {
      public async ValueTask<object?> InvokeAsync(
@@ -88,9 +90,28 @@ public static class SaleEndpoints
         var route = app.MapGroup("/sales");
         var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
 
-      
-        // will display inve
-        route.MapGet("/items", () =>
+
+//************************** ADMIN ROUTS *****************************************//    
+        
+           // Manually update inventory from CSV file, this endpoint can be used to refresh the inventory without restarting the application.
+        // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
+
+        // good solution - this route should pause POST/order request untile invenotry gets updated 
+         route.MapPost("/resetInventory",(List<Product> product, string userId) =>
+        {   
+            
+            inventory.PopulateInventory(product);
+            return Results.Ok(inventory.Products);
+        }).AddEndpointFilter<AdminFilter>();
+
+        route.MapPost("/updateinventory", (List<Product> product, string userId) =>
+        {
+            
+        }).AddEndpointFilter<AdminFilter>();
+            
+        
+         // will display inventory for admin page
+        route.MapGet("/items", (string userId) =>
         {
             var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             var productList = inventory.Products.Select(product => new
@@ -100,14 +121,18 @@ public static class SaleEndpoints
                 category = product.Category,
                 description = product.Description,
                 price = product.Price,
-                stock = product.Quantity,
                 specs = product.Specs
             }).ToList();
 
             return Results.Ok(productList);
-        });
+        }).AddEndpointFilter<AdminFilter>();
 
-        route.MapGet("/orderview", (string userId) =>
+
+//************************** ADMIN ROUTS *****************************************// 
+
+
+       
+        route.MapGet("/userorder", (string userId) =>
         {
             var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             OrderEventMessage[] orders;
@@ -137,19 +162,7 @@ public static class SaleEndpoints
 
        
          
-        // Manually update inventory from CSV file, this endpoint can be used to refresh the inventory without restarting the application.
-        // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
-
-        // good solution - this route should pause POST/order request untile invenotry gets updated 
-         route.MapGet("/resetInventory",(List<Product> product, string userId) =>
-        {   
-            
-            inventory.PopulateInventory(product);
-            return Results.Ok(inventory.Products);
-        }).AddEndpointFilter<IEndpointFilter>();
-
-      
-        
+     
         route.MapPost("/order", (PlaceOrderRequest order) =>
 
 

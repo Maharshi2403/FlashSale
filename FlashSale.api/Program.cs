@@ -1,13 +1,21 @@
-using FlashSale.Api.OrderBook.TicketMaster;
 using FlashSale.Api.Endpoints;
 using FlashSale.Api.Hubs;
-using FlashSale.Api.OrderBook;
-using FlashSale.Api.OrderBook.InventoryManager;
 using FlashSale.Api.Test;
+using Auth0.AspNetCore.Authentication;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var inventory_path= builder.Configuration["Inventory:FilePath"];
 var orderbook_path= builder.Configuration["OrderBook:FilePath"];
+
+
+
+builder.Services.AddAuth0WebAppAuthentication(options =>
+{
+    options.Domain = builder.Configuration["Auth0:Domain"];
+    options.ClientId = builder.Configuration["Auth0:ClientId"];
+    options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
+});
 // Let the hosting environment (ASPNETCORE_URLS / Render's $PORT) control the listening URL.
 // Removed a hard-coded URL so the container/runtime can bind to the port Render provides.
 //services

@@ -10,6 +10,7 @@
     <None Update="data/itemlist.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.11.0" />
     <PackageReference Include="Disruptor" Version="3.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
     <PackageReference Include="Microsoft.Coyote" Version="1.7.11" />

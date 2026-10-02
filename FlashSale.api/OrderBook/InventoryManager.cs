@@ -45,11 +45,26 @@ public class InventoryManager
         var lines = File.ReadAllLines(inventoryFilePath);
         if (apiInjection is not null)
         {
+            foreach(Product p in apiInjection)
+            {
+                Product pro = new Product
+                {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Category = p.Category,
+                        Description = p.Description,
+                        Price = p.Price,
+                        Quantity = p.Quantity,
+                        Specs = p.Specs
+                };
+                _inventory[pro.Id] = pro;
+            }
+
             
+
+            return;
         }
-        {
-            
-        }
+        
       foreach(var line in lines){
             // skip empty lines in csv
             if (string.IsNullOrWhiteSpace(line)) continue;
