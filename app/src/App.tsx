@@ -28,7 +28,7 @@ interface Product {
   category: string
   description: string
   price: number
-  stock: number
+  stock?: number
   specs: Record<string, string>
 }
 
@@ -160,6 +160,9 @@ export default function App() {
     if (stored) setAuthState(JSON.parse(stored))
   }, [])
 
+
+
+
   useEffect(() => {
     let disposed = false
     const connection = new HubConnectionBuilder()
@@ -169,7 +172,7 @@ export default function App() {
       .withAutomaticReconnect()
       .build()
 
-    fetch('http://0.0.0.0:5255/sales/items')
+    fetch('http://0.0.0.0:5255/sales/inventory')
       .then(response => response.json())
       .then(data => {
         if (!disposed) setProducts(Array.isArray(data) ? data : FALLBACK_PRODUCTS)
@@ -181,7 +184,7 @@ export default function App() {
         if (!disposed) setLoading(false)
       })
 
-    connection.on('StockUpdated', (update: { productId: number; stock: number }) => {
+     connection.on('StockUpdated', (update: { productId: number; stock: number }) => {
       setProducts(current => current.map(product =>
         Number(product.id) === update.productId
           ? { ...product, stock: update.stock }
@@ -196,6 +199,8 @@ export default function App() {
       connection.stop()
     }
   }, [])
+
+
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))]
   const filtered = filterCategory === 'All' ? products : products.filter(p => p.category === filterCategory)
@@ -248,7 +253,7 @@ export default function App() {
     try {
       const baseUrl = isLocalhost ? 'http://0.0.0.0:5255' : 'https://flashsale-syue.onrender.com'
       const query = new URLSearchParams({ userId: authState.username })
-      const res = await fetch(`${baseUrl}/sales/orderview?${query}`, {
+      const res = await fetch(`${baseUrl}/sales/userorders?${query}`, {
         headers: { Authorization: `Bearer ${authState.token}` },
       })
       if (!res.ok) throw new Error()
@@ -285,6 +290,8 @@ export default function App() {
       if (!res.ok) throw new Error()
       await new Promise(resolve => setTimeout(resolve, 250))
       await fetchOrders()
+     
+    
     } catch {
       console.log(Error);
     } finally {
@@ -301,7 +308,7 @@ export default function App() {
     }
     setOrderStatus('placing')
     try {
-      const res = await fetch('http://0.0.0.0:5255/sales/order', {
+      const res = await fetch('http://0.0.0.0:5255/sales/placeorder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -312,6 +319,7 @@ export default function App() {
       if (!res.ok) throw new Error()
       await new Promise(resolve => setTimeout(resolve, 250))
       await fetchOrders()
+  
       setOrderStatus('success')
       setSuccessMsg(`Ordered ${orderQty}× ${orderModal.name}`)
       setTimeout(() => {
@@ -476,11 +484,8 @@ export default function App() {
                 <div className="mono" style={{ fontSize: 22, fontWeight: 600 }}>${(orderModal.price * orderQty).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>@ ${orderModal.price.toFixed(2)} each · {orderModal.stock} in stock</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={() => setOrderQty(q => Math.max(1, q - 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>−</button>
-                <span className="mono" style={{ width: 24, textAlign: 'center', fontSize: 14 }}>{orderQty}</span>
-                <button onClick={() => setOrderQty(q => Math.min(orderModal.stock, q + 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>+</button>
-              </div>
+         
+               
             </div>
 
             {orderStatus === 'success' && (
@@ -593,7 +598,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order, i) => (
+                    {orders.filter(ord => getOrderStateLabel(ord.state) == 'COMPLETED').map((order, i) => (
                       <tr key={order.orderId ?? i} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td className="mono" style={{ padding: '12px 8px', fontSize: 11, color: 'var(--muted)' }}>{order.orderId}</td>
                         <td style={{ padding: '12px 8px', fontSize: 13 }}>{products.find(product => Number(product.id) === order.productId)?.name ?? `Product ${order.productId}`}</td>
@@ -606,7 +611,11 @@ export default function App() {
                           {order.timestamp ? order.timestamp : '—'}
                         </td>
                         <td style={{ padding: '12px 8px' }}>
-                          {getOrderStateLabel(order.state) === 'COMPLETED' && (
+                        <button onClick={() => setOrderQty(q => Math.max(1, order.quantity - 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>−</button>
+                          <span className="mono" style={{ width: 24, textAlign: 'center', fontSize: 14 }}>{orderQty}</span>
+                        <button onClick={() => setOrderQty(q => Math.min(order.quantity, q + 1))} style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--tag)', cursor: 'pointer', color: 'var(--fg)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>+</button>
+                                  {(
+                            
                             <button
                               onClick={() => cancelOrder(order.orderId, order.productId)}
                               disabled={cancellingOrderId === order.orderId}
@@ -658,10 +667,7 @@ function ProductCard({ product, onOrder }: { product: Product; onOrder: () => vo
       onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <span className="mono" style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '0.1em', fontWeight: 500 }}>{product.category.toUpperCase()}</span>
-        <span className="mono" style={{ fontSize: 10, color: product.stock < 5 ? 'var(--danger)' : 'var(--muted)' }}>{product.stock} in stock</span>
-      </div>
+      
 
       <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, lineHeight: 1.3 }}>{product.name}</h3>
       <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, flex: 1 }}>{product.description}</p>

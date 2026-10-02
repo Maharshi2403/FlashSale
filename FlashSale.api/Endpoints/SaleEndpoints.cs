@@ -97,7 +97,7 @@ public static class SaleEndpoints
         // !! Danger, need to test will it affect ongoing orders if inventory is updated while orders are being processed.
 
         // good solution - this route should pause POST/order request untile invenotry gets updated 
-         route.MapPost("/resetInventory",(List<Product> product, string userId) =>
+         route.MapPost("/admin/resetInventory",(List<Product> product, string userId) =>
         {   
             
             inventory.PopulateInventory(product);
@@ -111,10 +111,32 @@ public static class SaleEndpoints
             
         
          // will display inventory for admin page
-        route.MapGet("/items", (string userId) =>
+        route.MapGet("/admin/liveinventory", (string userId) =>
         {
             var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             var productList = inventory.Products.Select(product => new
+            {
+                id = product.Id,
+                name = product.Name,
+                category = product.Category,
+                description = product.Description,
+                price = product.Price,
+                stock = product.Quantity,
+                specs = product.Specs
+            }).ToList();
+
+            return Results.Ok(productList);
+        }).AddEndpointFilter<AdminFilter>();
+
+
+//************************** ADMIN ROUTS *****************************************// 
+
+          route.MapGet("/inventory", () =>
+        {
+            var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
+            var productList = inventory.Products
+            .Where(product => product.Quantity > 0)
+            .Select(product => new
             {
                 id = product.Id,
                 name = product.Name,
@@ -125,14 +147,9 @@ public static class SaleEndpoints
             }).ToList();
 
             return Results.Ok(productList);
-        }).AddEndpointFilter<AdminFilter>();
+        });
 
-
-//************************** ADMIN ROUTS *****************************************// 
-
-
-       
-        route.MapGet("/userorder", (string userId) =>
+        route.MapGet("/userorders", (string userId) =>
         {
             var inventory = app.ServiceProvider.GetRequiredService<DisruptorEngine>().GetInventory();
             OrderEventMessage[] orders;
@@ -163,7 +180,7 @@ public static class SaleEndpoints
        
          
      
-        route.MapPost("/order", (PlaceOrderRequest order) =>
+        route.MapPost("/placeorder", (PlaceOrderRequest order) =>
 
 
         {

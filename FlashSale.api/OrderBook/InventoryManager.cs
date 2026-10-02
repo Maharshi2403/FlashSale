@@ -418,7 +418,7 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
            
             
             // Log completed order
-            // Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
+            Console.WriteLine($"Order {data.OrderId}: COMPLETED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }
         else if (data.State == OrderState.FAILED)
         {
@@ -428,7 +428,7 @@ public class CompletionHandler : IEventHandler<OrderEventMessage>
             if (data.InventoryReserved > 0)
                 _inventory.Release(data.ProductId, data.InventoryReserved);
                 
-            // Console.WriteLine($"Order {data.OrderId}: FAILED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
+            Console.WriteLine($"Order {data.OrderId}: FAILED | processing={elapsedMilliseconds:F3} ms | CPU total={cpuMilliseconds:F1} ms | working set={workingSetMegabytes:F1} MB | managed heap={managedHeapMegabytes:F1} MB");
         }
     }
 
