@@ -84,7 +84,7 @@ public class DisruptorEngine
         {
             _ringBuffer.Publish(sequence);
         }
-        Console.WriteLine("Order published");
+      
         return orderId;
     }
     
