@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "3yi3F32g7Ws=",
+  "success": true,
+  "projectFilePath": "/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/FlashSale.Api.csproj",
+  "expectedPackageFiles": [
+    "/Users/maharshi/.nuget/packages/sylvan.data/0.2.17/sylvan.data.0.2.17.nupkg.sha512",
+    "/Users/maharshi/.nuget/packages/sylvan.data.csv/1.4.4/sylvan.data.csv.1.4.4.nupkg.sha512"
+  ],
+  "logs": []
+}
