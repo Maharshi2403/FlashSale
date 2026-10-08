@@ -2,6 +2,19 @@
   "version": 3,
   "targets": {
     "net10.0": {
+      "Disruptor/6.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Disruptor.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Disruptor.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Sylvan.Data/0.2.17": {
         "type": "package",
         "compile": {
@@ -31,6 +44,21 @@
     }
   },
   "libraries": {
+    "Disruptor/6.0.1": {
+      "sha512": "GV3hAt7pYpKaJCFxaWh0SsZa1fjB8HTJ4zNP/VLs1dkP4e0v3jHThbd4gWlus7s3ISZfiEGGGtjjwr0n8ogXmQ==",
+      "type": "package",
+      "path": "disruptor/6.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "disruptor.6.0.1.nupkg.sha512",
+        "disruptor.nuspec",
+        "lib/net6.0/Disruptor.dll",
+        "lib/net6.0/Disruptor.xml",
+        "lib/netstandard2.1/Disruptor.dll",
+        "lib/netstandard2.1/Disruptor.xml"
+      ]
+    },
     "Sylvan.Data/0.2.17": {
       "sha512": "0bl8wK+5g60QNClLK+bSxTu9A3NCPaBfnii1pYO81Z8RnSmPYWNr6Q6k22I1JVQEKIn2WZZ6rWgq1Jp8N2MVJQ==",
       "type": "package",
@@ -74,6 +102,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "Disruptor >= 6.0.1",
       "Sylvan.Data >= 0.2.17",
       "Sylvan.Data.Csv >= 1.4.4"
     ]
@@ -121,6 +150,10 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "Disruptor": {
+            "target": "Package",
+            "version": "[6.0.1, )"
+          },
           "Sylvan.Data": {
             "target": "Package",
             "version": "[0.2.17, )"

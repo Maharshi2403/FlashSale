@@ -5,8 +5,8 @@ public class Product
     public int _Id { get; set; }
     public string _Name { get; set; }
 
-    public string _Catagory {get; set;}
-
+    public string _Category {get; set;}
+    
     public string _Type {get; set;}
 
     public int _Qty {get; set;}

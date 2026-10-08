@@ -26,7 +26,7 @@ public class OrderEvent
 {
     public  long _orderId;
 
-    public required string _userId;
+    public  string _userId;
 
     public int _productId;
 
@@ -34,7 +34,9 @@ public class OrderEvent
 
     public long _timeStamp;
 
-    public required string _reservation;
+    public string? _reservation;
+
+    public decimal _price;
 
     public OrderState _state;
 

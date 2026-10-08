@@ -4,6 +4,8 @@ using Sylvan.Data;
 using Sylvan.Data.Csv;
 using System.Linq;
 using System.ComponentModel;
+using System.Text;
+using Microsoft.Extensions.ObjectPool;
 
 
 namespace Inventory.InventorySchema;
@@ -16,11 +18,12 @@ public class InventorySchema
     public InventorySchema()
     {
 
-        Console.WriteLine("Controle here");
         _inventory = new();
         PopulateInventory(null);
     }
 
+
+// Populate inventory from CSV file
     public void PopulateInventory(List<Product>? productList)
     {
         if(productList is null)
@@ -44,15 +47,33 @@ public class InventorySchema
     
     // reserv stock in inventory
 
-    public async Task<bool> TryReserv(int productId, int qty)
+    public string? TryReserv(int productId, int qty)
     {
-        if(_inventory[productId] is not null && _inventory[productId]._Qty > 0)
+        if (qty <= 0)
+            return null;
+
+        while (true)
         {
-            _inventory[productId]._Qty--;
-            return true;
+            if (!_inventory.TryGetValue(productId, out var current))
+                return null; // Product doesn't exist
+                
+            if (current._Qty < qty)
+                return null; // Out of stock
+
+            var updated = new Product
+            {
+                _Id = current._Id,
+                _Name = current._Name,
+                _Category = current._Category,
+                _Description = current._Description,
+                _Price = current._Price,
+                _Qty = current._Qty - qty,
+                _Specs = current._Specs
+            };
+
+            if (_inventory.TryUpdate(productId, updated, current))
+                return $"{productId}-{DateTime.UtcNow.Ticks}"; // Reservation token
         }
-       
-        return false;
 
 
     } 
@@ -60,20 +81,32 @@ public class InventorySchema
 
     // release reservation 
 
-    public async Task<bool> TryRelease(int productId, int qty)
+    public void TryRelease(int productId, int qty)
     {
 
-        if(_inventory[productId] is not null)
+        while (true)
         {
-             _inventory[productId]._Qty++;
-            return true;
+            var current = _inventory[productId];
+            var update = new Product
+            {
+                _Id = current._Id,
+                _Name = current._Name,
+                _Category = current._Category,
+               _Description = current._Description,
+                _Price = current._Price,
+                _Qty = current._Qty + qty,
+                _Specs = current._Specs
+            };
+            if (_inventory.TryUpdate(productId, update, current))
+                break;
         }
-
-        return false;
     }
 
     
     
 
 }
+
+
+
 

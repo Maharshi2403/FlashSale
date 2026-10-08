@@ -1,4 +1,4 @@
-_Id,_Name,_Catagory,_Type,_Qty,_Price,_Description,_Specs
+_Id,_Name,_Category,_Type,_Qty,_Price,_Description,_Specs
 1,Lenovo P520,IT,Workstation,55,400,High-end workstation for CAD/3D workloads,CPU=Intel Xeon;RAM=64GB;Storage=1TB NVMe
 2,Lenovo T490,IT,Laptop,20,200,Business laptop, 14-inch,CPU=Intel Core i7;RAM=16GB;Storage=512GB SSD
 3,Lenovo T480,IT,Laptop,32,160,Business laptop, 14-inch older gen,CPU=Intel Core i5;RAM=8GB;Storage=256GB SSD
