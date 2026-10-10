@@ -31,3 +31,9 @@
 /Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/obj/Debug/net10.0/FlashSale.Api.pdb
 /Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/obj/Debug/net10.0/FlashSale.Api.genruntimeconfig.cache
 /Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/obj/Debug/net10.0/ref/FlashSale.Api.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/bin/Debug/net10.0/Disruptor.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/bin/Debug/net10.0/Microsoft.OpenApi.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/bin/Debug/net10.0/Swashbuckle.AspNetCore.Swagger.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/Users/maharshi/Documents/v2.0/FlashSale/FlashSale.Api/obj/Debug/net10.0/FlashSale.Api.MvcApplicationPartsAssemblyInfo.cs

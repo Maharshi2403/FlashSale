@@ -2,6 +2,7 @@ using Inventory.InventorySchema;
 using Disruptor.Dsl;
 using OrderMessage.OrderEvent;
 using Disruptor;
+using OrderChanel.ServiceChannel;
 using System.Reflection.Metadata.Ecma335;
 
 namespace OrderEngine.DisruptorEngine;
@@ -15,13 +16,15 @@ public class DisruptorEngine
     private readonly RingBuffer<OrderEvent> _ringbuffer;
 
     private readonly InventorySchema _inventoryShema;
+
+    private readonly ServiceChannel _channel;
     
     private long _orderId;
 
-    public DisruptorEngine(InventorySchema inventoryshema, int bufferSize)
+    public DisruptorEngine(InventorySchema inventoryshema, ServiceChannel channel,int bufferSize)
     {
         _inventoryShema = inventoryshema;
-
+        _channel = channel;
 
         var dslDisruptor = new Disruptor<OrderEvent>(
           () => new OrderEvent(),
@@ -33,7 +36,7 @@ public class DisruptorEngine
 
 
         dslDisruptor
-        .HandleEventsWith(new InventoryReservationHandler(_inventoryShema));
+        .HandleEventsWith(new InventoryReservationHandler(_inventoryShema, _channel));
 
 
         _disruptor = dslDisruptor;
@@ -48,8 +51,6 @@ public class DisruptorEngine
     }
 
     
-
-
 
     public long PublishOrder(string userId, int productId, int quantity, decimal price)
     {
@@ -78,15 +79,6 @@ public class DisruptorEngine
         return orderId;
     }
 
-
-    public void PublishCancellation(long orderId, string userId)
-    {
-        
-    }
-
-
-    
-    
 
 
 }

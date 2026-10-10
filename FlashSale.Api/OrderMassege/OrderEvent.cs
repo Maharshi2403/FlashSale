@@ -45,7 +45,7 @@ public class OrderEvent
     //Empty Constructor
     public OrderEvent()
     {
-        
+    _pad0 = _pad1 = _pad2 =  _pad3 =_pad4 = _pad5 =_pad6 = 0;
     }
 
 

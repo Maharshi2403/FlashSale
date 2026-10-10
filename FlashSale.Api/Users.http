@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:5072
+
+### List users
+GET {{baseUrl}}/api/users
+
+### Get user 1
+GET {{baseUrl}}/api/users/1
+
+### Create a user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Taylor Example",
+  "email": "taylor@example.com"
+}
+
+### Update user 1
+PUT {{baseUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "name": "Taylor Updated",
+  "email": "taylor.updated@example.com"
+}
+
+### Delete user 1
+DELETE {{baseUrl}}/api/users/1
+
+### Submit an order
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "userId": "user-123",
+  "productId": 1,
+  "quantity": 2,
+  "price": 19.99
+}
